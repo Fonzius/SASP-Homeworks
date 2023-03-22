@@ -20,28 +20,24 @@ if pianoFs == speechFs
     fs = pianoFs;
 end
 
-%% 
-M = floor(5e-3*fs); % 5 ms is taken from lesson as example segment length
-%nSegments = floor(length(piano)/fs); % number of segments that we get from the piano signal
+%% Compute the filter coefficients
 
+M = floor(5e-3*fs); % 5 ms is taken from lesson as example segment length
 
 index = 1:M:length(piano); %resize the piano signal
-s = zeros(length(index), M); %piano signal matrix
+s = zeros(length(index), M); %piano signal split in segments
 
+% Create a new signal by appending zeros at the end s.t. length(newPiano) is
+% multiple of M
 newPiano = zeros(numel(s),1);
 newPiano(1:length(piano)) = piano(:);
 
+% split the signal in segments of length M
 for ii = 1:length(s)
     s(ii,:) = newPiano(index(ii) : index(ii)+M-1);
 end
 
-%e = zeros(nSegments, length(piano)); %create an oversized matrix (all errors outside the "boundary" will be zero)
-
-% r1 = zeros(length(s), size(s,2)*2-1);
-% for ii = 1:length(s)
-%     r1(ii,:) = xcorr(s(ii,:));
-% end
-
+% Create the r vector of the autocorrelations with sample lag 1:M
 r = zeros(length(s), size(s,2)); % n , p
 for nn = 1:length(s)
     for pp = 1:M
@@ -49,22 +45,63 @@ for nn = 1:length(s)
     end
 end
 
-r1 = zeros(length(s), size(s,2));
+% Create autocorrelation vector with sample lags 0:M-1
+acorrVector = zeros(length(s), size(s,2));
 for nn = 1:length(s)
     for pp = 0:M-1
-        r1(nn,pp+1) = sum(s(nn,1:M-pp).*s(nn,1+pp:M));
+        acorrVector(nn,pp+1) = sum(s(nn,1:M-pp).*s(nn,1+pp:M));
     end
 end
 
-R = zeros(M,M,length(s)); %p, p, n
+% Create the symmetrical autocorrelation matrix by putting in the i,j 
+% entry the i-j entry of the autocorrelation vector
+R = zeros(M,M,length(s));
 for ii = 1:M
     for jj = 1:M
-        R(ii,jj,:) = r1(:,abs(ii-jj)+1);
+        R(ii,jj,:) = acorrVector(:,abs(ii-jj)+1);
     end
 end
 
+% Compute the a coefficients as R^-1 * r
 a = zeros(length(s), size(s,2));
 for ii = 1:length(s)
     a(ii,:) = inv(R(:,:,ii)) * r(ii,:)';
 end
+
+%%
+% Create a predicted version of the file by convolving the filter with the
+% signal
+sPredict = zeros(size(s));
+for nn = 1:size(s,1)
+    for kk = 1:size(s,2)
+        sPredict(nn,kk) = sum(a(nn,1:kk) .* s(nn, kk:-1:1));
+    end
+end
+%%
+predictedPiano = zeros(size(newPiano));
+for ii = 1:size(index,2)-1
+    predictedPiano(index(ii):index(ii+1)-1) = sPredict(ii,:);
+end
+
+%% CHECK THIS
+
+zPiano = fft(predictedPiano);
+
+N = length(zPiano);
+z = exp(2*pi*1i/N);
+k = 0:N-1;
+zPiano = ((1/N) * zPiano' .* z.^(-k))';
+
+
+
+
+
+
+
+
+
+
+
+
+
 
