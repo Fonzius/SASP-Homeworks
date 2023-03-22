@@ -68,3 +68,8 @@ for ii = 1:length(s)
     a(ii,:) = inv(R(:,:,ii)) * r(ii,:)';
 end
 
+
+%%
+
+ = r1;
+poiuyf(:,1) = []
