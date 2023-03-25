@@ -1,40 +1,22 @@
-clc;
-clear all;
-close all;
+function[H, error] = LPCFilter (audioFile)
 
-%% Legend
-% p: number past samples
-% n: current time
-% k: k_th coefficient
-% M: segment length
-% a: filter coefficients
+% Import the files
+[signal, fs] = audioread(audioFile);
 
-% speech: 5ms, 
+% 5 ms is taken from lesson as example segment length
+M = floor(5e-3*fs);
 
-%% Import the files
-
-[piano, pianoFs] = audioread("piano.wav");
-[speech, speechFs] = audioread("speech.wav");
-
-if pianoFs == speechFs
-    fs = pianoFs;
-end
-
-%% Compute the filter coefficients
-
-M = floor(5e-3*fs); % 5 ms is taken from lesson as example segment length
-
-index = 1:M:length(piano); %resize the piano signal
+index = 1:M:length(signal); %resize the piano signal
 s = zeros(length(index), M); %piano signal split in segments
 
-% Create a new signal by appending zeros at the end s.t. length(newPiano) is
+% Create a new signal by appending zeros at the end s.t. length(paddedSignal) is
 % multiple of M
-newPiano = zeros(numel(s),1);
-newPiano(1:length(piano)) = piano(:);
+paddedSignal = zeros(numel(s),1);
+paddedSignal(1:length(signal)) = signal(:);
 
 % split the signal in segments of length M
 for ii = 1:length(s)
-    s(ii,:) = newPiano(index(ii) : index(ii)+M-1);
+    s(ii,:) = paddedSignal(index(ii) : index(ii)+M-1);
 end
 
 % Create the r vector of the autocorrelations with sample lag 1:M
@@ -68,7 +50,7 @@ for ii = 1:length(s)
     a(ii,:) = inv(R(:,:,ii)) * r(ii,:)';
 end
 
-%% Create a predicted version of the file by convolving the filter with the signal
+% Create a predicted version of the file by convolving the filter with the signal
 
 sPredict = zeros(size(s));
 for nn = 1:size(s,1)
@@ -77,42 +59,24 @@ for nn = 1:size(s,1)
     end
 end
 
-predictedPiano = zeros(size(newPiano));
+predictedSignal = zeros(size(paddedSignal));
 for ii = 1:size(index,2)-1
-    predictedPiano(index(ii):index(ii+1)-1) = sPredict(ii,:);
+    predictedSignal(index(ii):index(ii+1)-1) = sPredict(ii,:);
 end
 
-audiowrite("predictedPiano.wav", predictedPiano, fs);
-
-%% Get the activation signal Z-tranform to obtain the inverse filter Z-transform
-
 %Z-Transoform of the predicted signal
-sPredictZ = fft(predictedPiano);
+sPredictZ = fft(predictedSignal);
 N = length(sPredictZ);
 z = exp(2*pi*1i/N);
 k = 0:N-1;
 sPredictZ = ((1/N) * sPredictZ' .* z.^(-k))';
 
 %Z-Transform of the original signal
-sZ = fft(newPiano);
+sZ = fft(paddedSignal);
 sZ = ((1/N) * sZ' .* z.^(-k))';
 
-%Find GU(z)
-GU = sPredictZ - sZ;
+%Find Z-Transform of the error
+error = sPredictZ - sZ;
 
 % Find filter H
-H = (sPredictZ ./ GU);
-
-
-[H1, e1] = LPCFilter("piano.wav");
-
-
-
-
-
-
-
-
-
-
-
+H = (sPredictZ ./error);

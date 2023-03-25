@@ -100,11 +100,9 @@ sZ = ((1/N) * sZ' .* z.^(-k))';
 %Find GU(z)
 GU = sPredictZ - sZ;
 
-% Find filter H
-H = (sPredictZ ./ GU);
+% Find filter A
+A = 1/(sPredictZ ./ GU);
 
-
-[H1, e1] = LPCFilter("piano.wav");
 
 
 
