@@ -4,20 +4,29 @@ function[H, error] = LPCFilter (audioFile)
 [signal, fs] = audioread(audioFile);
 
 % 5 ms is taken from lesson as example segment length
-M = floor(5e-3*fs);
+M = floor(5e-3*fs); % How many samples in each segment
 
-index = 1:M:length(signal); %resize the piano signal
-s = zeros(length(index), M); %piano signal split in segments
+%%%%//// Method by Xinmeng
+num_segment = ceil(length(signal)/M);
+num_pad = num_segment* M -length(signal);
+paddedSignal = padarray(signal,[num_pad 0],0,'post');
+s = reshape(paddedSignal,M,num_segment)';
 
-% Create a new signal by appending zeros at the end s.t. length(paddedSignal) is
-% multiple of M
-paddedSignal = zeros(numel(s),1);
-paddedSignal(1:length(signal)) = signal(:);
+%%%%%////Method by Marco 
+% index = 1:M:length(signal); %resize the piano signal
+% s = zeros(length(index), M); %piano signal split in segments
+% 
+% % Create a new signal by appending zeros at the end s.t. length(paddedSignal) is
+% % multiple of M
+% paddedSignal = zeros(numel(s),1);
+% paddedSignal(1:length(signal)) = signal(:);
+% 
+% % split the signal in segments of length M
+% for ii = 1:length(s)
+%     s(ii,:) = paddedSignal(index(ii) : index(ii)+M-1);
+% end
 
-% split the signal in segments of length M
-for ii = 1:length(s)
-    s(ii,:) = paddedSignal(index(ii) : index(ii)+M-1);
-end
+
 % 
 % % Create the r vector of the autocorrelations with sample lag 1:M
 % r = zeros(length(s), size(s,2)); % n , p
