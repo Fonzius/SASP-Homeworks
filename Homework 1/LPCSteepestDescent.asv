@@ -1,0 +1,46 @@
+function[H, error] = LPCSteepestDescent(audioFile)
+
+audioFile = "piano.wav";
+[signal, fs] = audioread(audioFile);
+
+M = floor(5e-3*fs);
+
+mu = 0.1;
+
+index = 1:M:length(signal); %resize the piano signal
+s = zeros(length(index), M); %piano signal split in segments
+
+% Create a new signal by appending zeros at the end s.t. length(paddedSignal) is
+% multiple of M
+paddedSignal = zeros(numel(s),1);
+paddedSignal(1:length(signal)) = signal(:);
+
+% split the signal in segments of length M
+for ii = 1:length(s)
+    s(ii,:) = paddedSignal(index(ii) : index(ii)+M-1);
+end
+
+w = zeros(length(s),M);
+u = zeros(length(s),M);
+
+for ii = 1:length(s)
+    temp = conv(s(ii,:),w(ii,:));
+    u(ii,:) = temp(ceil(length(temp)/2):end);
+end
+
+p = zeros(size(s));
+for ii = 1:lenght(s)
+    for jj = 1:M
+        p(ii,jj) = avg(u(ii,1:jj) .* conj(s(ii,1:jj)));
+    end
+end
+
+R = zeros(M,M,length(s));
+for ii = 1:length(s)
+    R(:,:,ii) = corrmtx(s(ii,:),size(s,2)-1);
+end
+
+for ii = 1:length(s)
+    w(ii,:) = w(ii,:) * mu*(p(ii,:)-R(:,:,ii)*w(ii,:)');
+end
+

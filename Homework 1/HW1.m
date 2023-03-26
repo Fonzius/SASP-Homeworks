@@ -11,100 +11,37 @@ close all;
 
 % speech: 5ms, 
 
-%% Import the files
+%%
+[hPiano, ePiano] = LPCFilter("piano.wav");
+[hSpeech, eSpeech] = LPCFilter("speech.wav");
 
-[piano, pianoFs] = audioread("piano.wav");
-[speech, speechFs] = audioread("speech.wav");
+%%
+piano = audioread("piano.wav");
 
-if pianoFs == speechFs
-    fs = pianoFs;
-end
+paddedSignal = zeros(size(A));
+paddedSignal(1:length(piano)) = piano(:);
 
-%% Compute the filter coefficients
-
-M = floor(5e-3*fs); % 5 ms is taken from lesson as example segment length
-
-index = 1:M:length(piano); %resize the piano signal
-s = zeros(length(index), M); %piano signal split in segments
-
-% Create a new signal by appending zeros at the end s.t. length(newPiano) is
-% multiple of M
-newPiano = zeros(numel(s),1);
-newPiano(1:length(piano)) = piano(:);
-
-% split the signal in segments of length M
-for ii = 1:length(s)
-    s(ii,:) = newPiano(index(ii) : index(ii)+M-1);
-end
-
-% Create the r vector of the autocorrelations with sample lag 1:M
-r = zeros(length(s), size(s,2)); % n , p
-for nn = 1:length(s)
-    for pp = 1:M
-        r(nn,pp) = sum(s(nn,1:M-pp).*s(nn,1+pp:M));
-    end
-end
-
-% Create autocorrelation vector with sample lags 0:M-1
-acorrVector = zeros(length(s), size(s,2));
-for nn = 1:length(s)
-    for pp = 0:M-1
-        acorrVector(nn,pp+1) = sum(s(nn,1:M-pp).*s(nn,1+pp:M));
-    end
-end
-
-% Create the symmetrical autocorrelation matrix by putting in the i,j 
-% entry the i-j entry of the autocorrelation vector
-R = zeros(M,M,length(s));
-for ii = 1:M
-    for jj = 1:M
-        R(ii,jj,:) = acorrVector(:,abs(ii-jj)+1);
-    end
-end
-
-% Compute the a coefficients as R^-1 * r
-a = zeros(length(s), size(s,2));
-for ii = 1:length(s)
-    a(ii,:) = inv(R(:,:,ii)) * r(ii,:)';
-end
-
-%% Create a predicted version of the file by convolving the filter with the signal
-
-sPredict = zeros(size(s));
-for nn = 1:size(s,1)
-    for kk = 1:size(s,2)
-        sPredict(nn,kk) = sum(a(nn,1:kk) .* s(nn, kk:-1:1));
-    end
-end
-
-predictedPiano = zeros(size(newPiano));
-for ii = 1:size(index,2)-1
-    predictedPiano(index(ii):index(ii+1)-1) = sPredict(ii,:);
-end
-
-audiowrite("predictedPiano.wav", predictedPiano, fs);
-
-%% Get the activation signal Z-tranform to obtain the inverse filter Z-transform
-
-%Z-Transoform of the predicted signal
-sPredictZ = fft(predictedPiano);
-N = length(sPredictZ);
+zPiano = fft(paddedSignal);
+N = length(zPiano);
 z = exp(2*pi*1i/N);
 k = 0:N-1;
-sPredictZ = ((1/N) * sPredictZ' .* z.^(-k))';
+zPiano = ((1/N) * zPiano' .* z.^(-k))';
 
-%Z-Transform of the original signal
-sZ = fft(newPiano);
-sZ = ((1/N) * sZ' .* z.^(-k))';
+A = (1/hPiano)';
 
-%Find GU(z)
-GU = sPredictZ - sZ;
+whitenedPiano = A.*paddedSignal;
 
-% Find filter H
-H = (sPredictZ ./ GU);
+pianoVoice = whitenedPiano.*hSpeech;
+
+%pianoVoice = (N * pianoVoice' ./ z.^(-k))';
+pianoVoice = ifft(piano);
+N = length(pianoVoice);
 
 
-[H1, e1] = LPCFilter("piano.wav");
+
+sound(real(pianoVoice), 44100);
+
+
 
 
 
