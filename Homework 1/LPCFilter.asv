@@ -13,7 +13,7 @@ paddedSignal = padarray(signal,[num_pad 0],0,'post');
 s = reshape(paddedSignal,M,num_segment)';
 
 %%%%%////Method by Marco 
- index = 1:M:length(signal); %resize the piano signal
+%  index = 1:M:length(signal); %resize the piano signal
 % s = zeros(length(index), M); %piano signal split in segments
 % 
 % % Create a new signal by appending zeros at the end s.t. length(paddedSignal) is
@@ -62,50 +62,61 @@ for ss = 1:num_segment
     r_auto_correlation(:,ss) = auto_correlation_current';
 end
 
-r_auto_correlation_norm = r_auto_correlation ./ vecnorm(r_auto_correlation, 2, 1);
+% test for normalization
+r_auto_correlation_norm = r_auto_correlation ./ max(r_auto_correlation, [], 1);
+% r_auto_correlation = r_auto_correlation';
+% r_auto_correlation_norm =r_auto_correlation_norm';
+
+r = r_auto_correlation(2:end,:);
+R = zeros(M-1,M-1,num_segment);
+for ss= 1:num_segment
+    for ii = 1:M-1
+        for jj = 1:M-1
+            R(ii,jj,ss) = r_auto_correlation(abs(ii-jj)+1,ss);
+        end 
+    end 
+end
 
 
 %%%%//////////////////////////////////
 
-
-
-%%%%%%test
-
-% Create a matrix with random values
-A = rand(3859, 220);
-
-% Normalize each column of the matrix
-A_normalized = A ./ max(A, [], 1);
-
-% Scale the matrix to a range between 0 and 1
-A_normalized_scaled = (A_normalized - min(A_normalized(:))) / (max(A_normalized(:)) - min(A_normalized(:)));
-
-
-%%%%%%%%%%
-
-
-signalAutocorr = zeros(size(s,1), size(s,2)+1); % n , p
-for ii = 1:length(signalAutocorr)
-    signalAutocorr(ii,:) = autocorrelation(s(ii,:),M);
-end
-
-r = signalAutocorr(:,2:end);
-r1 = signalAutocorr(:,1:end-1);
-
+%%%%%//// auto-correlation matrix by Marco
+% signalAutocorr = zeros(size(s,1), size(s,2)+1); % n , p
+% for ii = 1:length(signalAutocorr)
+%     signalAutocorr(ii,:) = autocorrelation(s(ii,:),M);
+% end
+% 
+% r = signalAutocorr(:,2:end);
+% r1 = signalAutocorr(:,1:end-1);
+% 
 
 % r_norm = r ./ vecnorm(r, 2, 2);
 
 
 % Create the symmetrical autocorrelation matrix by putting in the i,j 
 % entry the i-j entry of the autocorrelation vector
-R = zeros(M,M,length(s));
-for ii = 1:M
-    for jj = 1:M
-        R(ii,jj,:) = r1(:,abs(ii-jj)+1);
-    end
+
+% r1 = r_auto_correlation; 
+% R = zeros(M,M,length(s));
+% for ii = 1:M
+%     for jj = 1:M
+%         R(ii,jj,:) = r1(:,abs(ii-jj)+1);
+%     end
+% end
+
+
+a = zeros(M-1,num_segment);
+for ss= 1:num_segment
+    R_inverse = inv(R());
+
+
 end
 
+
+
+
 % Compute the a coefficients as R^-1 * r
+r = r_auto_correlation; 
 a = zeros(length(s), size(s,2));
 for ii = 1:length(s)
     a(ii,:) = inv(R(:,:,ii)) * r(ii,:)';
