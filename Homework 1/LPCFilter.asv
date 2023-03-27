@@ -76,6 +76,19 @@ for ss= 1:num_segment
         end 
     end 
 end
+a = zeros(M-1,num_segment);
+R_inverse = zeros(M-1,M-1,num_segment);
+
+%%%%%%%%%%% VERY SLOW
+for ss= 1:num_segment
+    R_inverse(:,:,ss) = inv(R(:,:,ss));
+    a(:,ss) = R_inverse(:,:,ss) * r(:,ss);
+end
+
+r = r';
+a = a';
+r_auto_correlation = r_auto_correlation';
+% R = permute(R, [2 1 3]);
 
 
 %%%%//////////////////////////////////
@@ -104,37 +117,54 @@ end
 %     end
 % end
 
+% 
+% % Compute the a coefficients as R^-1 * r
+% r = r_auto_correlation; 
+% a = zeros(length(s), size(s,2));
+% for ii = 1:length(s)
+%     a(ii,:) = inv(R(:,:,ii)) * r(ii,:)';
+% end
 
-a = zeros(M-1,num_segment);
-for ss= 1:num_segment
-    R_inverse = inv(R());
-
-
-end
-
-
-
-
-% Compute the a coefficients as R^-1 * r
-r = r_auto_correlation; 
-a = zeros(length(s), size(s,2));
-for ii = 1:length(s)
-    a(ii,:) = inv(R(:,:,ii)) * r(ii,:)';
-end
-
+%%
 % Create a predicted version of the file by convolving the filter with the signal
 
-sPredict = zeros(size(s));
-for nn = 1:size(s,1)
-    for kk = 1:size(s,2)
-        sPredict(nn,kk) = sum(a(nn,1:kk) .* s(nn, kk:-1:1));
+%%%%/// predicted signal by Xinmeng
+s_predict = zeros(num_segment,M-1);
+s_predict_para_cal = zeros(M-1,M-1);
+
+for ss = 1:num_segment
+    sample_segment_current = s(ss,1:end-1)';
+    % get calculation parameter matrix of predict signal
+    for mm = 1:M-1        
+        s_predict_para_cal(mm:M-1, mm) = sample_segment_current(1:M-mm)'; % fill the matrix 
     end
+    s_predict_current = s_predict_para_cal * sample_segment_current;
+    s_predict(ss,:) = s_predict_current';
 end
 
-predictedSignal = zeros(size(paddedSignal));
-for ii = 1:size(index,2)-1
-    predictedSignal(index(ii):index(ii+1)-1) = sPredict(ii,:);
-end
+%test
+% MM=5;
+% sample = [1 2 3 4 5];
+% s_predict_ = zeros(MM-1,MM-1);
+% for mmm = 1:MM-1        
+%         s_predict_(mmm:MM-1, mmm) = sample(1:MM-mmm)'; % fill the matrix 
+% end
+
+
+
+
+%%%%/// predicted version by Marco
+% sPredict = zeros(size(s));
+% for nn = 1:size(s,1)
+%     for kk = 1:size(s,2)
+%         sPredict(nn,kk) = sum(a(nn,1:kk) .* s(nn, kk:-1:1));
+%     end
+% end
+% 
+% predictedSignal = zeros(size(paddedSignal));
+% for ii = 1:size(index,2)-1
+%     predictedSignal(index(ii):index(ii+1)-1) = sPredict(ii,:);
+% end
 
 %Z-Transoform of the predicted signal
 sPredictZ = fft(predictedSignal);
