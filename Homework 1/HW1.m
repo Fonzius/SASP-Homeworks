@@ -12,8 +12,9 @@ close all;
 % speech: 5ms, 
 
 %%
-[hPiano, ePiano] = LPCFilter("piano.wav");
-[hSpeech, eSpeech] = LPCFilter("speech.wav");
+% [hPiano, ePiano] = LPCFilter("piano.wav");
+% [hSpeech, eSpeech] = LPCFilter("speech.wav");
+[predict_piano] = LPCFilter("piano.wav");
 
 %%
 piano = audioread("piano.wav");

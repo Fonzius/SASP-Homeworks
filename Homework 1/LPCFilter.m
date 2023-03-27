@@ -1,4 +1,4 @@
-function[H, error] = LPCFilter (audioFile)
+function[s_predict] = LPCFilter (audioFile)
 
 % Import the files
 [signal, fs] = audioread(audioFile);
@@ -142,16 +142,6 @@ for ss = 1:num_segment
     s_predict(ss,:) = s_predict_current';
 end
 
-%test
-% MM=5;
-% sample = [1 2 3 4 5];
-% s_predict_ = zeros(MM-1,MM-1);
-% for mmm = 1:MM-1        
-%         s_predict_(mmm:MM-1, mmm) = sample(1:MM-mmm)'; % fill the matrix 
-% end
-
-
-
 
 %%%%/// predicted version by Marco
 % sPredict = zeros(size(s));
@@ -166,19 +156,29 @@ end
 %     predictedSignal(index(ii):index(ii+1)-1) = sPredict(ii,:);
 % end
 
-%Z-Transoform of the predicted signal
-sPredictZ = fft(predictedSignal);
-N = length(sPredictZ);
-z = exp(2*pi*1i/N);
-k = 0:N-1;
-sPredictZ = ((1/N) * sPredictZ' .* z.^(-k))';
 
-%Z-Transform of the original signal
-sZ = fft(paddedSignal);
-sZ = ((1/N) * sZ' .* z.^(-k))';
-
-%Find Z-Transform of the error
-error = sPredictZ - sZ;
-
-% Find filter H
-H = (sPredictZ ./error);
+%%%%%%%%%%%%%%%
+% % Z-Transform of the predicted signal by Xinmeng
+% 
+% sPredict_fft = zeros(size(s_predict)); % 用于存储每行 FFT 的结果
+% 
+% for i = 1:num_segment
+%     sPredict_fft(i, :) = fft(s_predict(i, :));
+% end
+% 
+% % Z-Transoform of the predicted signal by Marco
+% sPredictZ = fft(predictedSignal);
+% N = length(sPredictZ);
+% z = exp(2*pi*1i/N);
+% k = 0:N-1;
+% sPredictZ = ((1/N) * sPredictZ' .* z.^(-k))';
+% 
+% %Z-Transform of the original signal
+% sZ = fft(paddedSignal);
+% sZ = ((1/N) * sZ' .* z.^(-k))';
+% 
+% %Find Z-Transform of the error
+% error = sPredictZ - sZ;
+% 
+% % Find filter H
+% H = (sPredictZ ./error);
