@@ -62,10 +62,26 @@ for ss = 1:num_segment
     r_auto_correlation(:,ss) = auto_correlation_current';
 end
 
-r_auto_correlation_norm = r_auto_correlation ./ vecnorm(A, 2, 2);
+r_auto_correlation_norm = r_auto_correlation ./ vecnorm(r_auto_correlation, 2, 1);
 
-%%%%////
 
+%%%%//////////////////////////////////
+
+
+
+%%%%%%test
+
+% Create a matrix with random values
+A = rand(3859, 220);
+
+% Normalize each column of the matrix
+A_normalized = A ./ max(A, [], 1);
+
+% Scale the matrix to a range between 0 and 1
+A_normalized_scaled = (A_normalized - min(A_normalized(:))) / (max(A_normalized(:)) - min(A_normalized(:)));
+
+
+%%%%%%%%%%
 
 
 signalAutocorr = zeros(size(s,1), size(s,2)+1); % n , p
@@ -75,6 +91,10 @@ end
 
 r = signalAutocorr(:,2:end);
 r1 = signalAutocorr(:,1:end-1);
+
+
+% r_norm = r ./ vecnorm(r, 2, 2);
+
 
 % Create the symmetrical autocorrelation matrix by putting in the i,j 
 % entry the i-j entry of the autocorrelation vector
