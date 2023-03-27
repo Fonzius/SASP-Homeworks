@@ -13,7 +13,7 @@ paddedSignal = padarray(signal,[num_pad 0],0,'post');
 s = reshape(paddedSignal,M,num_segment)';
 
 %%%%%////Method by Marco 
-% index = 1:M:length(signal); %resize the piano signal
+ index = 1:M:length(signal); %resize the piano signal
 % s = zeros(length(index), M); %piano signal split in segments
 % 
 % % Create a new signal by appending zeros at the end s.t. length(paddedSignal) is
@@ -53,30 +53,21 @@ s = reshape(paddedSignal,M,num_segment)';
 auto_para_cal = zeros(M,M);
 r_auto_correlation = zeros(M);
 for ss = 1:num_segment
+    sample_segment_current = s(ss,:)';
     % get calculation parameter matrix of auto-correlation
-    for mm = 1:M
-        sample_segment_current = s(ss,:)';
-        auto_para_cal(mm:M, mm) = sample_segment_current(1:M-mm+1); % 填充矩阵的对角线和上三角
+    for mm = 1:M        
+        auto_para_cal(mm, 1:M-mm+1) = sample_segment_current(mm:end)'; % fill the matrix 
     end
     auto_correlation_current = auto_para_cal * sample_segment_current;
     r_auto_correlation(:,ss) = auto_correlation_current';
 end
 
-
-
-%%%%now is CORRECT!
-v = [1; 2; 3; 4]; % 定义向量
-n = length(v); % 获取向量长度
-m = zeros(n); % 创建一个 n x n 的零矩阵
-for i = 1:n
-    m(i, 1:n-i+1) = v(i:end)';
-end
-%%%%%
-
-
-
+r_auto_correlation_norm = r_auto_correlation ./ vecnorm(r_auto_correlation, 2, 2);
 
 %%%%////
+
+
+
 signalAutocorr = zeros(size(s,1), size(s,2)+1); % n , p
 for ii = 1:length(signalAutocorr)
     signalAutocorr(ii,:) = autocorrelation(s(ii,:),M);
@@ -84,6 +75,10 @@ end
 
 r = signalAutocorr(:,2:end);
 r1 = signalAutocorr(:,1:end-1);
+
+
+r_norm = r ./ vecnorm(r, 2, 2);
+
 
 % Create the symmetrical autocorrelation matrix by putting in the i,j 
 % entry the i-j entry of the autocorrelation vector
