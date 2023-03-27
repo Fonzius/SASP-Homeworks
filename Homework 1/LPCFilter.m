@@ -13,7 +13,7 @@ paddedSignal = padarray(signal,[num_pad 0],0,'post');
 s = reshape(paddedSignal,M,num_segment)';
 
 %%%%%////Method by Marco 
- index = 1:M:length(signal); %resize the piano signal
+%  index = 1:M:length(signal); %resize the piano signal
 % s = zeros(length(index), M); %piano signal split in segments
 % 
 % % Create a new signal by appending zeros at the end s.t. length(paddedSignal) is
@@ -62,51 +62,60 @@ for ss = 1:num_segment
     r_auto_correlation(:,ss) = auto_correlation_current';
 end
 
-% r_auto_correlation_norm = r_auto_correlation ./ vecnorm(r_auto_correlation, 2, 1);
+% test for normalization
 r_auto_correlation_norm = r_auto_correlation ./ max(r_auto_correlation, [], 1);
+% r_auto_correlation = r_auto_correlation';
+% r_auto_correlation_norm =r_auto_correlation_norm';
+
+r = r_auto_correlation(2:end,:);
+R = zeros(M-1,M-1,num_segment);
+for ss= 1:num_segment
+    for ii = 1:M-1
+        for jj = 1:M-1
+            R(ii,jj,ss) = r_auto_correlation(abs(ii-jj)+1,ss);
+        end 
+    end 
+end
+a = zeros(M-1,num_segment);
+R_inverse = zeros(M-1,M-1,num_segment);
+for ss= 1:num_segment
+    R_inverse(:,:,ss) = inv(R(:,:,ss));
+    a = R_inverse(:,:,ss) * r(:,ss);
+end
 
 %%%%//////////////////////////////////
 
-
-
-%%%%%%test
-
-% % Create a matrix with random values
-% A = [1 3 5;2 3 4;8 9 3];
+%%%%%//// auto-correlation matrix by Marco
+% signalAutocorr = zeros(size(s,1), size(s,2)+1); % n , p
+% for ii = 1:length(signalAutocorr)
+%     signalAutocorr(ii,:) = autocorrelation(s(ii,:),M);
+% end
 % 
-% % Normalize each column of the matrix
-% A_normalized = A ./ max(A, [], 1);
+% r = signalAutocorr(:,2:end);
+% r1 = signalAutocorr(:,1:end-1);
 % 
-
-%%%%%%%%%%
-
-
-signalAutocorr = zeros(size(s,1), size(s,2)+1); % n , p
-for ii = 1:length(signalAutocorr)
-    signalAutocorr(ii,:) = autocorrelation(s(ii,:),M);
-end
-
-r = signalAutocorr(:,2:end);
-r1 = signalAutocorr(:,1:end-1);
-
 
 % r_norm = r ./ vecnorm(r, 2, 2);
 
 
 % Create the symmetrical autocorrelation matrix by putting in the i,j 
 % entry the i-j entry of the autocorrelation vector
-R = zeros(M,M,length(s));
-for ii = 1:M
-    for jj = 1:M
-        R(ii,jj,:) = r1(:,abs(ii-jj)+1);
-    end
-end
 
-% Compute the a coefficients as R^-1 * r
-a = zeros(length(s), size(s,2));
-for ii = 1:length(s)
-    a(ii,:) = inv(R(:,:,ii)) * r(ii,:)';
-end
+% r1 = r_auto_correlation; 
+% R = zeros(M,M,length(s));
+% for ii = 1:M
+%     for jj = 1:M
+%         R(ii,jj,:) = r1(:,abs(ii-jj)+1);
+%     end
+% end
+
+% 
+% % Compute the a coefficients as R^-1 * r
+% r = r_auto_correlation; 
+% a = zeros(length(s), size(s,2));
+% for ii = 1:length(s)
+%     a(ii,:) = inv(R(:,:,ii)) * r(ii,:)';
+% end
 
 % Create a predicted version of the file by convolving the filter with the signal
 
