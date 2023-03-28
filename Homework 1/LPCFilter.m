@@ -1,4 +1,4 @@
-function[H, error] = LPCFilter (audioFile)
+function[s_predict] = LPCFilter (audioFile)
 
 % Import the files
 [signal, fs] = audioread(audioFile);
@@ -78,10 +78,18 @@ for ss= 1:num_segment
 end
 a = zeros(M-1,num_segment);
 R_inverse = zeros(M-1,M-1,num_segment);
+
+%%%%%%%%%%% VERY SLOW
 for ss= 1:num_segment
     R_inverse(:,:,ss) = inv(R(:,:,ss));
-    a = R_inverse(:,:,ss) * r(:,ss);
+    a(:,ss) = R_inverse(:,:,ss) * r(:,ss);
 end
+
+r = r';
+a = a';
+r_auto_correlation = r_auto_correlation';
+% R = permute(R, [2 1 3]);
+
 
 %%%%//////////////////////////////////
 
@@ -117,10 +125,25 @@ end
 %     a(ii,:) = inv(R(:,:,ii)) * r(ii,:)';
 % end
 
+%%
 % Create a predicted version of the file by convolving the filter with the signal
 
+%%%%/// predicted signal by Xinmeng
+s_predict = zeros(num_segment,M-1);
+s_predict_para_cal = zeros(M-1,M-1);
 
-% ALL OF THIS IS PROBABLY WRONG
+for ss = 1:num_segment
+    sample_segment_current = s(ss,1:end-1)';
+    % get calculation parameter matrix of predict signal
+    for mm = 1:M-1        
+        s_predict_para_cal(mm:M-1, mm) = sample_segment_current(1:M-mm)'; % fill the matrix 
+    end
+    s_predict_current = s_predict_para_cal * sample_segment_current;
+    s_predict(ss,:) = s_predict_current';
+end
+
+
+%%%%/// predicted version by Marco
 % sPredict = zeros(size(s));
 % for nn = 1:size(s,1)
 %     for kk = 1:size(s,2)
@@ -132,8 +155,18 @@ end
 % for ii = 1:size(index,2)-1
 %     predictedSignal(index(ii):index(ii+1)-1) = sPredict(ii,:);
 % end
+
+
+%%%%%%%%%%%%%%%
+% % Z-Transform of the predicted signal by Xinmeng
 % 
-% %Z-Transoform of the predicted signal
+% sPredict_fft = zeros(size(s_predict)); % 用于存储每行 FFT 的结果
+% 
+% for i = 1:num_segment
+%     sPredict_fft(i, :) = fft(s_predict(i, :));
+% end
+% 
+% % Z-Transoform of the predicted signal by Marco
 % sPredictZ = fft(predictedSignal);
 % N = length(sPredictZ);
 % z = exp(2*pi*1i/N);
@@ -149,8 +182,3 @@ end
 % 
 % % Find filter H
 % H = (sPredictZ ./error);
-
-H = zeros(size(s));
-for ii = 1:size(s,1)
-    H(ii,:) = freqz(1,[1 , ])
-end

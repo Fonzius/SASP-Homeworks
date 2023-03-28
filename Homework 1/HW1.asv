@@ -12,16 +12,17 @@ close all;
 % speech: 5ms, 
 
 %%
-[hPiano, ePiano] = LPCFilter("piano.wav");
-[hSpeech, eSpeech] = LPCFilter("speech.wav");
-
+% [hPiano, ePiano] = LPCFilter("piano.wav");
+% [hSpeech, eSpeech] = LPCFilter("speech.wav");
+[predict_piano] = LPCFilter("piano.wav");
+predict_piano_reshape = reshape(predict_piano', 1, 3859);
 %%
 piano = audioread("piano.wav");
 
 paddedSignal = zeros(size(A));
-paddedSignal(1:length(signal)) = piano(:);
+paddedSignal(1:length(piano)) = piano(:);
 
-zPiano = fft(piano);
+zPiano = fft(paddedSignal);
 N = length(zPiano);
 z = exp(2*pi*1i/N);
 k = 0:N-1;
@@ -29,17 +30,17 @@ zPiano = ((1/N) * zPiano' .* z.^(-k))';
 
 A = (1/hPiano)';
 
-whitenedPiano = A.*piano;
+whitenedPiano = A.*paddedSignal;
 
 pianoVoice = whitenedPiano.*hSpeech;
 
-pianoVoice = (N * pianoVoice' ./ z.^(-k))';
+%pianoVoice = (N * pianoVoice' ./ z.^(-k))';
 pianoVoice = ifft(piano);
 N = length(pianoVoice);
 
 
 
-sound(pianoVoice, 44100);
+sound(real(pianoVoice), 44100);
 
 
 
