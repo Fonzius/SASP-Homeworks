@@ -1,4 +1,4 @@
-function[s_predict] = LPCFilter (audioFile)
+function[whitenedSignal, H] = LPCFilter (audioFile)
 
 % Import the files
 [signal, fs] = audioread(audioFile);
@@ -90,42 +90,6 @@ a = a';
 r_auto_correlation = r_auto_correlation';
 % R = permute(R, [2 1 3]);
 
-
-%%%%//////////////////////////////////
-
-%%%%%//// auto-correlation matrix by Marco
-% signalAutocorr = zeros(size(s,1), size(s,2)+1); % n , p
-% for ii = 1:length(signalAutocorr)
-%     signalAutocorr(ii,:) = autocorrelation(s(ii,:),M);
-% end
-% 
-% r = signalAutocorr(:,2:end);
-% r1 = signalAutocorr(:,1:end-1);
-% 
-
-% r_norm = r ./ vecnorm(r, 2, 2);
-
-
-% Create the symmetrical autocorrelation matrix by putting in the i,j 
-% entry the i-j entry of the autocorrelation vector
-
-% r1 = r_auto_correlation; 
-% R = zeros(M,M,length(s));
-% for ii = 1:M
-%     for jj = 1:M
-%         R(ii,jj,:) = r1(:,abs(ii-jj)+1);
-%     end
-% end
-
-% 
-% % Compute the a coefficients as R^-1 * r
-% r = r_auto_correlation; 
-% a = zeros(length(s), size(s,2));
-% for ii = 1:length(s)
-%     a(ii,:) = inv(R(:,:,ii)) * r(ii,:)';
-% end
-
-%%
 % Create a predicted version of the file by convolving the filter with the signal
 
 %%%%/// predicted signal by Xinmeng
@@ -142,43 +106,17 @@ for ss = 1:num_segment
     s_predict(ss,:) = s_predict_current';
 end
 
+A = zeros(size(s));
+for ii = 1:size(s,1)
+    A(ii,:) = freqz(1, a(ii,:), M);
+end
 
-%%%%/// predicted version by Marco
-% sPredict = zeros(size(s));
-% for nn = 1:size(s,1)
-%     for kk = 1:size(s,2)
-%         sPredict(nn,kk) = sum(a(nn,1:kk) .* s(nn, kk:-1:1));
-%     end
-% end
-% 
-% predictedSignal = zeros(size(paddedSignal));
-% for ii = 1:size(index,2)-1
-%     predictedSignal(index(ii):index(ii+1)-1) = sPredict(ii,:);
-% end
+whitenedSignal = zeros(size(s));
+for ii = 1:size(s,1)
+    whitenedSignal(ii,:) = fft(s(ii,:));
+    whitenedSignal(ii,:) = whitenedSignal(ii,:) .* A(ii,:);
+end
 
+%whitenedSignal = reshape(whitenedSignal, size(paddedSignal));
 
-%%%%%%%%%%%%%%%
-% % Z-Transform of the predicted signal by Xinmeng
-% 
-% sPredict_fft = zeros(size(s_predict)); % 用于存储每行 FFT 的结果
-% 
-% for i = 1:num_segment
-%     sPredict_fft(i, :) = fft(s_predict(i, :));
-% end
-% 
-% % Z-Transoform of the predicted signal by Marco
-% sPredictZ = fft(predictedSignal);
-% N = length(sPredictZ);
-% z = exp(2*pi*1i/N);
-% k = 0:N-1;
-% sPredictZ = ((1/N) * sPredictZ' .* z.^(-k))';
-% 
-% %Z-Transform of the original signal
-% sZ = fft(paddedSignal);
-% sZ = ((1/N) * sZ' .* z.^(-k))';
-% 
-% %Find Z-Transform of the error
-% error = sPredictZ - sZ;
-% 
-% % Find filter H
-% H = (sPredictZ ./error);
+H = 1./A;
