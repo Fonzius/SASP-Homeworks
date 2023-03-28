@@ -87,6 +87,61 @@ close all;
 [Hpiano, epiano] = LPCFilter("piano.wav");
 [Hspeech, espeech] = LPCFilter("speech.wav");
 
+%% MArco try
+[piano,fs] = audioread("piano.wav");
+
+
+
+M = floor(5e-3*fs); % How many samples in each segment
+num_segment = ceil(length(piano)/M);
+
+hPiano = reshape(Hpiano, num_segment, M);
+
+num_pad = num_segment* M -length(piano);
+paddedPiano = padarray(piano,[num_pad 0],0,'post');
+s = reshape(paddedPiano,M,num_segment)';
+
+sPadded = zeros(num_segment,M+size(hPiano,2)-1);
+for ii = 1:size(s,2)
+    sPadded(:,ii) = s(:,ii);
+end
+s_fft = fft(sPadded')';
+
+hPiano_time = ifft(hPiano')';
+hPiano_time_pad = zeros(num_segment,M+size(hPiano,2)-1);
+for ii = 1:size(s,2)
+    hPiano_time_pad(:,ii) = hPiano_time(:,ii);
+end
+hPiano_fft = fft(hPiano_time_pad')';
+
+whitenedPiano = hPiano_fft.*s_fft;
+whitenedPiano = ifft(whitenedPiano')';
+%whitenedPiano_time = zeros(size(piano));
+
+oN = M+size(hPiano,2)-1;
+
+wp = zeros(size(piano));
+
+for ii = 1:size(whitenedPiano)
+    wp(1 + M*(ii-1) : M*(ii-1)+oN) = wp(1 + M*(ii-1) : M*(ii-1)+oN) + whitenedPiano(ii,:)';
+end
+
+
+%%
+
+whitenedPiano_middle_segment = whitenedPiano(2:end,220:end)'; %3859*439
+whitenedPiano_middle_segment1 =reshape(whitenedPiano_middle_segment',1,numel(whitenedPiano_middle_segment));
+whitenedPiano_first_segment = whitenedPiano(1,1:220);
+wh = [whitenedPiano_first_segment whitenedPiano_middle_segment1];
+sound(abs(wh),44100);
+% whitenedPiano_middle_segment = whitenedPiano(2:end,220)';
+% 
+% whitenedPiano_first_segment = whitenedPiano(1,1:220);
+% 
+% wh = [whitenedPiano_first_segment whitenedPiano_middle_segment];
+
+%%
+
 error_time_piano = ifft(epiano);
 sound(abs(error_time_piano),44100)
 error_time_speech = ifft(espeech);
