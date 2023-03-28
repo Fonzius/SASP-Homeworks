@@ -1,10 +1,15 @@
+<<<<<<< Updated upstream
 function[s_predict] = LPCFilter (audioFile)
+=======
+function[a] = LPCFilter (audioFile)
+>>>>>>> Stashed changes
 
 % Import the files
 [signal, fs] = audioread(audioFile);
 
 % 5 ms is taken from lesson as example segment length
 M = floor(5e-3*fs); % How many samples in each segment
+
 
 %%%%//// Method by Xinmeng
 num_segment = ceil(length(signal)/M);
@@ -50,8 +55,9 @@ for ss= 1:num_segment
 end
 
 r = r';
-a = a';
+a = a'; % a vector
 r_auto_correlation = r_auto_correlation';
+<<<<<<< Updated upstream
 % R = permute(R, [2 1 3]);
 
 
@@ -60,21 +66,19 @@ r_auto_correlation = r_auto_correlation';
 
 %%
 % Create a predicted version of the file by convolving the filter with the signal
+=======
+>>>>>>> Stashed changes
 
-%%%%/// predicted signal by Xinmeng
-s_predict = zeros(num_segment,M-1);
-s_predict_para_cal = zeros(M-1,M-1);
 
-for ss = 1:num_segment
-    sample_segment_current = s(ss,1:end-1)';
-    % get calculation parameter matrix of predict signal
-    for mm = 1:M-1        
-        s_predict_para_cal(mm:M-1, mm) = sample_segment_current(1:M-mm)'; % fill the matrix 
-    end
-    s_predict_current = s_predict_para_cal * sample_segment_current;
-    s_predict(ss,:) = s_predict_current';
+a_exp1 = ones(size(a,1),1);
+a_exp =[a_exp1 -1.*a];
+H = zeros(size(a_exp)); % shaping filter H
+for ii = 1:size(a_exp,1)
+    H(ii,:) = freqz(1, a_exp(ii,:), M);
 end
+A = 1./H; % whitening filter A
 
+<<<<<<< Updated upstream
 ww=1;
 
 
@@ -117,3 +121,27 @@ ww=1;
 % 
 % % Find filter H
 % H = (sPredictZ ./error);
+=======
+a_exp0 = zeros(size(a,1),1);
+a_exp_p =[a_exp0 a];
+
+P = zeros(size(a_exp_p));
+for ii = 1:size(a_exp_p,1)
+    P(ii,:) = freqz(a_exp_p(ii,:),1,M);
+end
+
+
+piano_fft = fft(s');
+piano_fft = piano_fft';
+
+error = A.*piano_fft;
+error_reshape = reshape(error',[848980 1]);
+error_time = ifft(error_reshape')';
+
+piano_hat = P .* piano_fft;
+piano_hat_reshape = reshape(piano_hat',[848980 1]);
+
+
+
+
+>>>>>>> Stashed changes

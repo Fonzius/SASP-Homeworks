@@ -1,4 +1,8 @@
+<<<<<<< Updated upstream
 function[s_predict] = LPCFilter (audioFile)
+=======
+function[a] = LPCFilter (audioFile)
+>>>>>>> Stashed changes
 
 % Import the files
 [signal, fs] = audioread(audioFile);
@@ -6,12 +10,55 @@ function[s_predict] = LPCFilter (audioFile)
 % 5 ms is taken from lesson as example segment length
 M = floor(5e-3*fs); % How many samples in each segment
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 %%%%//// Method by Xinmeng
 num_segment = ceil(length(signal)/M);
 num_pad = num_segment* M -length(signal);
 paddedSignal = padarray(signal,[num_pad 0],0,'post');
 s = reshape(paddedSignal,M,num_segment)';
 
+<<<<<<< Updated upstream
+=======
+%%%%%////Method by Marco 
+%  index = 1:M:length(signal); %resize the piano signal
+% s = zeros(length(index), M); %piano signal split in segments
+% 
+% % Create a new signal by appending zeros at the end s.t. length(paddedSignal) is
+% % multiple of M
+% paddedSignal = zeros(numel(s),1);
+% paddedSignal(1:length(signal)) = signal(:);
+% 
+% % split the signal in segments of length M
+% for ii = 1:length(s)
+%     s(ii,:) = paddedSignal(index(ii) : index(ii)+M-1);
+% end
+
+
+% 
+% % Create the r vector of the autocorrelations with sample lag 1:M
+% r = zeros(length(s), size(s,2)); % n , p
+% for nn = 1:length(s)
+%     for pp = 1:M
+%         r(nn,pp) = sum(s(nn,1:M-pp).*s(nn,1+pp:M));
+%     end
+% end
+% 
+% 
+% % Create autocorrelation vector with sample lags 0:M-1
+% acorrVector = zeros(length(s), size(s,2));
+% for nn = 1:length(s)
+%     for pp = 0:M-1
+%         acorrVector(nn,pp+1) = sum(s(nn,1:M-pp).*s(nn,1+pp:M));
+%     end
+% end
+
+
+
+
+>>>>>>> Stashed changes
 %%%%%//// auto-correlation matrix by xinmeng
 
 auto_para_cal = zeros(M,M);
@@ -50,6 +97,7 @@ for ss= 1:num_segment
 end
 
 r = r';
+<<<<<<< Updated upstream
 a = a';
 r_auto_correlation = r_auto_correlation';
 % R = permute(R, [2 1 3]);
@@ -117,3 +165,39 @@ ww=1;
 % 
 % % Find filter H
 % H = (sPredictZ ./error);
+=======
+a = a'; % a 
+r_auto_correlation = r_auto_correlation';
+
+
+a_exp1 = ones(size(a,1),1);
+a_exp =[a_exp1 -1.*a];
+H = zeros(size(a_exp));
+for ii = 1:size(a_exp,1)
+    H(ii,:) = freqz(1, a_exp(ii,:), M);
+end
+A = 1./H;
+
+a_exp0 = zeros(size(a,1),1);
+a_exp_p =[a_exp0 a];
+
+P = zeros(size(a_exp_p));
+for ii = 1:size(a_exp_p,1)
+    P(ii,:) = freqz(a_exp_p(ii,:),1,M);
+end
+
+
+piano_fft = fft(s');
+piano_fft = piano_fft';
+
+error = A.*piano_fft;
+error_reshape = reshape(error',[848980 1]);
+error_time = ifft(error_reshape')';
+
+piano_hat = P .* piano_fft;
+piano_hat_reshape = reshape(piano_hat',[848980 1]);
+
+
+
+
+>>>>>>> Stashed changes
