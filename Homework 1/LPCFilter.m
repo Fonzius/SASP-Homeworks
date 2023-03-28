@@ -12,42 +12,6 @@ num_pad = num_segment* M -length(signal);
 paddedSignal = padarray(signal,[num_pad 0],0,'post');
 s = reshape(paddedSignal,M,num_segment)';
 
-%%%%%////Method by Marco 
-%  index = 1:M:length(signal); %resize the piano signal
-% s = zeros(length(index), M); %piano signal split in segments
-% 
-% % Create a new signal by appending zeros at the end s.t. length(paddedSignal) is
-% % multiple of M
-% paddedSignal = zeros(numel(s),1);
-% paddedSignal(1:length(signal)) = signal(:);
-% 
-% % split the signal in segments of length M
-% for ii = 1:length(s)
-%     s(ii,:) = paddedSignal(index(ii) : index(ii)+M-1);
-% end
-
-
-% 
-% % Create the r vector of the autocorrelations with sample lag 1:M
-% r = zeros(length(s), size(s,2)); % n , p
-% for nn = 1:length(s)
-%     for pp = 1:M
-%         r(nn,pp) = sum(s(nn,1:M-pp).*s(nn,1+pp:M));
-%     end
-% end
-% 
-% 
-% % Create autocorrelation vector with sample lags 0:M-1
-% acorrVector = zeros(length(s), size(s,2));
-% for nn = 1:length(s)
-%     for pp = 0:M-1
-%         acorrVector(nn,pp+1) = sum(s(nn,1:M-pp).*s(nn,1+pp:M));
-%     end
-% end
-
-
-
-
 %%%%%//// auto-correlation matrix by xinmeng
 
 auto_para_cal = zeros(M,M);
@@ -93,37 +57,6 @@ r_auto_correlation = r_auto_correlation';
 
 %%%%//////////////////////////////////
 
-%%%%%//// auto-correlation matrix by Marco
-% signalAutocorr = zeros(size(s,1), size(s,2)+1); % n , p
-% for ii = 1:length(signalAutocorr)
-%     signalAutocorr(ii,:) = autocorrelation(s(ii,:),M);
-% end
-% 
-% r = signalAutocorr(:,2:end);
-% r1 = signalAutocorr(:,1:end-1);
-% 
-
-% r_norm = r ./ vecnorm(r, 2, 2);
-
-
-% Create the symmetrical autocorrelation matrix by putting in the i,j 
-% entry the i-j entry of the autocorrelation vector
-
-% r1 = r_auto_correlation; 
-% R = zeros(M,M,length(s));
-% for ii = 1:M
-%     for jj = 1:M
-%         R(ii,jj,:) = r1(:,abs(ii-jj)+1);
-%     end
-% end
-
-% 
-% % Compute the a coefficients as R^-1 * r
-% r = r_auto_correlation; 
-% a = zeros(length(s), size(s,2));
-% for ii = 1:length(s)
-%     a(ii,:) = inv(R(:,:,ii)) * r(ii,:)';
-% end
 
 %%
 % Create a predicted version of the file by convolving the filter with the signal
@@ -141,6 +74,8 @@ for ss = 1:num_segment
     s_predict_current = s_predict_para_cal * sample_segment_current;
     s_predict(ss,:) = s_predict_current';
 end
+
+ww=1;
 
 
 %%%%/// predicted version by Marco

@@ -15,7 +15,8 @@ close all;
 % [hPiano, ePiano] = LPCFilter("piano.wav");
 % [hSpeech, eSpeech] = LPCFilter("speech.wav");
 [predict_piano] = LPCFilter("piano.wav");
-predict_piano_reshape = reshape(predict_piano', 1, 3859);
+predict_piano_reshape = reshape(predict_piano', 1, size(predict_piano,1)*size(predict_piano,2));
+sound(predict_piano_reshape)
 %%
 piano = audioread("piano.wav");
 
