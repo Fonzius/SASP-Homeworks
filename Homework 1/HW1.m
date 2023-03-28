@@ -14,17 +14,11 @@ close all;
 %%
 % [hPiano, ePiano] = LPCFilter("piano.wav");
 % [hSpeech, eSpeech] = LPCFilter("speech.wav");
-[whitenedPiano, hPiano] = LPCFilter("piano.wav");
-[whitenedVoice, hVoice] = LPCFilter("speech.wav");
+[aPiano] = LPCFilter("piano.wav");
+[aVoice] = LPCFilter("speech.wav");
 %%
 
-vocoder = whitenedPiano.*hVoice;
-
-for ii = 1:length(vocoder)
-    vocoder(ii,:) = ifft(vocoder(ii,:));
-end
-
-vocoder = reshape(vocoder, [numel(vocoder), 1]);
+aPianoNorm = aPiano./aPiano(:,1);
 %% TEST WITH LPC FUNCTION
 piano = audioread("piano.wav");
 voice = audioread("speech.wav");
@@ -34,7 +28,7 @@ num_segment = ceil(length(piano)/M);
 num_pad = num_segment* M -length(piano);
 paddedPiano = padarray(piano,[num_pad 0],0,'post');
 sPiano1 = reshape(paddedPiano,M,num_segment)';
-aPiano1 = lpc(sPiano1',219);
+aPiano1 = lpc(sPiano1',218);
 APiano1 = zeros(size(sPiano1));
 for ii = 1:size(sPiano1,1)
     APiano1(ii,:) = freqz(1, aPiano1(ii,:), M);
@@ -42,7 +36,7 @@ end
 
 paddedVoice = padarray(voice,[num_pad 0],0,'post');
 sVoice1 = reshape(paddedVoice,M,num_segment)';
-aVoice1 = lpc(sVoice1',219);
+aVoice1 = lpc(sVoice1',218);
 AVoice1 = zeros(size(sVoice1));
 for ii = 1:size(sVoice1,1)
     AVoice1(ii,:) = freqz(1, aVoice1(ii,:), M);
@@ -67,7 +61,7 @@ output = reshape(whitenedPiano, size(paddedPiano));
 
 %%
 
-sound(abs(output), 44100);
+deltaA = aPianoNorm - aPiano1;
 %%
 piano = audioread("piano.wav");
 
@@ -94,12 +88,9 @@ N = length(pianoVoice);
 
 sound(real(pianoVoice), 44100);
 
+%%
 
-
-
-
-
-
+wPiano = LPCSteepestDescent("piano.wav");
 
 
 

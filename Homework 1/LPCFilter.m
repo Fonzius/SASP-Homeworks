@@ -1,4 +1,4 @@
-function[whitenedSignal, H] = LPCFilter (audioFile)
+function[a] = LPCFilter (audioFile)
 
 % Import the files
 [signal, fs] = audioread(audioFile);
@@ -87,36 +87,38 @@ end
 
 r = r';
 a = a';
-r_auto_correlation = r_auto_correlation';
-% R = permute(R, [2 1 3]);
 
-% Create a predicted version of the file by convolving the filter with the signal
-
-%%%%/// predicted signal by Xinmeng
-s_predict = zeros(num_segment,M-1);
-s_predict_para_cal = zeros(M-1,M-1);
-
-for ss = 1:num_segment
-    sample_segment_current = s(ss,1:end-1)';
-    % get calculation parameter matrix of predict signal
-    for mm = 1:M-1        
-        s_predict_para_cal(mm:M-1, mm) = sample_segment_current(1:M-mm)'; % fill the matrix 
-    end
-    s_predict_current = s_predict_para_cal * sample_segment_current;
-    s_predict(ss,:) = s_predict_current';
-end
-
-A = zeros(size(s));
-for ii = 1:size(s,1)
-    A(ii,:) = freqz(1, a(ii,:), M);
-end
-
-whitenedSignal = zeros(size(s));
-for ii = 1:size(s,1)
-    whitenedSignal(ii,:) = fft(s(ii,:));
-    whitenedSignal(ii,:) = whitenedSignal(ii,:) .* A(ii,:);
-end
-
-%whitenedSignal = reshape(whitenedSignal, size(paddedSignal));
-
-H = 1./A;
+% 
+% r_auto_correlation = r_auto_correlation';
+% % R = permute(R, [2 1 3]);
+% 
+% % Create a predicted version of the file by convolving the filter with the signal
+% 
+% %%%%/// predicted signal by Xinmeng
+% s_predict = zeros(num_segment,M-1);
+% s_predict_para_cal = zeros(M-1,M-1);
+% 
+% for ss = 1:num_segment
+%     sample_segment_current = s(ss,1:end-1)';
+%     % get calculation parameter matrix of predict signal
+%     for mm = 1:M-1        
+%         s_predict_para_cal(mm:M-1, mm) = sample_segment_current(1:M-mm)'; % fill the matrix 
+%     end
+%     s_predict_current = s_predict_para_cal * sample_segment_current;
+%     s_predict(ss,:) = s_predict_current';
+% end
+% 
+% A = zeros(size(s));
+% for ii = 1:size(s,1)
+%     A(ii,:) = freqz(1, a(ii,:), M);
+% end
+% 
+% whitenedSignal = zeros(size(s));
+% for ii = 1:size(s,1)
+%     whitenedSignal(ii,:) = fft(s(ii,:));
+%     whitenedSignal(ii,:) = whitenedSignal(ii,:) .* A(ii,:);
+% end
+% 
+% %whitenedSignal = reshape(whitenedSignal, size(paddedSignal));
+% 
+% H = A;
