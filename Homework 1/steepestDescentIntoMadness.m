@@ -18,24 +18,25 @@ R = zeros(M-1, M-1, n_segments);
 R_max_eigen = zeros(n_segments,1);
 R_min_eigen = zeros(n_segments,1);
 
+% Compute all the mecessary stuff
 for ii = 1:n_segments
     r = xcorr(u(ii,:));
-    p(ii,:) = r(ceil((end+1)/2)-1:-1:1);
+    p(ii,:) = r(ceil((end+1)/2)-1:-1:1); 
     R(:,:,ii) = toeplitz(p(ii,:));
-    R_eigen = eig(R(:,:,ii));
-    R_max_eigen(ii) = max(R_eigen);
-    R_min_eigen(ii) = min(R_eigen);
+    R_eigen = eig(R(:,:,ii)); 
+    R_max_eigen(ii) = max(R_eigen); 
+    R_min_eigen(ii) = min(R_eigen); %Here sometimes it's negative. I don't know if it's supposed to do that
 end
 
 
 %%
-mu = 1./R_max_eigen;
-tau = abs(ceil(1./(2.*mu.*R_min_eigen)));
+mu = 1./R_max_eigen; %taken from the middle of the range
+tau = abs(ceil(1./(2.*mu.*R_min_eigen))); %they are usually too big
 w = zeros(size(u,1),size(u,2)-1);
 
 for ii = 1:n_segments
     for jj = 1:tau(ii)
-        w(ii,:) = w(ii,:) + mu(ii).*(p(ii,:)-(R(:,:,ii)*w(ii,:)')');
+        w(ii,:) = w(ii,:) + mu(ii).*(p(ii,:)-(R(:,:,ii)*w(ii,:)')'); %formula from the slides
     end
 end
 
@@ -48,18 +49,18 @@ a = [a_ones -w];
 %     A(ii,:) = freqz(a(ii,:),1,M);
 % end
 
-%%
+%% Test to check against
 
 pred = zeros(n_segments, M);
 for ss = 1:n_segments
     [pred(ss,:) err(ss,:)] = lpc(u(ss,:), M-1);
 end
 
-%%
+%% Difference between our results and lps funcrtion
 
 delta = pred-a;
 
-%%
+%% Filtering, it's wrong
 
 H = 1./A;
 
