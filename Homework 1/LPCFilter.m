@@ -1,10 +1,38 @@
-function[H_reshape, error_freq] = LPCFilter (audioFile)
+function[H_reshape, H_norm_reshape error_freq] = LPCFilter (audioFile)
 
 % Import the files
 [signal, fs] = audioread(audioFile);
 
-% 5 ms is taken from lesson as example segment length
+%%%% add windowing to the signal
+% segment == window 
+% 5 ms for SPEECH! is taken from lesson as example segment length
+% for harmonic and noise signal, probably we could have longer windows (
+% more segments in each window)
+
+
+%%%% staionary assumption, recording 20230317, 31:57 --> the mean and the
+%%%% variance don't change with time. 
+%%%% we need to compute the mean and variance to make sure they don't
+%%%% change in each segment.
 M = floor(5e-3*fs); % How many samples in each segment
+
+
+%%%% recording 20230317, 39:46 --> error signal (in time) is longer than
+%%%% each windowed signal, due to the convolution
+%%%% p is the length of the filter
+%%%% e.g. p=4 --> 2 resonant peaks
+%%%%      p=8 --> 4 resonant peaks...
+%%%% cuz poles are complicated conjugate
+
+%%%% using lower order p is able to get the peak in spectrogram (for
+%%%% piano), like fs/1000 <= p <= fs/1000+4 
+%%%% the code works well to get the peaks instead of the valleys
+
+
+%%%% get pitch from piano (should be only containing fundamental frequency)
+%%%% and get spectrogram from audio
+
+%%%% find a to minimize the short-time mean-squared error
 
 %%%%//// Method by Xinmeng
 num_segment = ceil(length(signal)/M);
@@ -12,6 +40,8 @@ num_pad = num_segment* M -length(signal);
 paddedSignal = padarray(signal,[num_pad 0],0,'post');
 s = reshape(paddedSignal,M,num_segment)';
 s_fft = fft(paddedSignal);
+
+s_fft_seg = fft(s')';
 %%%%%////Method by Marco 
 %  index = 1:M:length(signal); %resize the piano signal
 % s = zeros(length(index), M); %piano signal split in segments
@@ -94,21 +124,39 @@ a_exp =[a_exp1 -1.*a];
 
 %%%%%%%%%%%% method 1 - SHIT！ 
 H = zeros(size(s));
+% A = zeros(size(s));
+% H_1 = zeros(size(s));
 for ss = 1:num_segment
-    pred_index = freqz(1, a_exp(ss,:),220);
-    H(ss,:) = pred_index';
+    H_index = freqz(1, a_exp(ss,:),"whole",M);
+    H(ss,:) = H_index';
+
+%     A_index = freqz(a_exp(ss,:),1,"whole",M);
+%     A(ss,:) = A_index';
+
+    %%%test
+%     pred_index_1 = freqz(1, a_exp(ss,:),M);
+%     H_1(ss,:) = pred_index_1';
+    %%%//////
 %     H_current = fftshift(pred_index);
 %     H(ss,:) = H_current';
 end
 
 A = 1./H;
 
-A_reshape = reshape(A',[848980 1]);
-H_reshape = reshape(H',[848980 1]);
+
+
+
+A_reshape = reshape(A',[numel(s) 1]);
+H_reshape = reshape(H',[numel(s) 1]);
 
 error_freq = A_reshape .* s_fft;
 error_time = ifft(error_freq);
 
+
+H_norm = H ./max(abs(H),[],1) .* max(abs(s_fft_seg),[],1);
+H_norm_reshape = reshape(H_norm',[numel(s) 1]);
+% r_auto_correlation_norm = r_auto_correlation ./ max(r_auto_correlation, [], 1);
+% instr_H(:,nn) = (instr_H(:,nn)/max(abs(instr_H(:,nn))))*max(abs(instr_st_signal_w(:,nn)));
 
 % H = fftshift(freqz(1, a_exp));
 

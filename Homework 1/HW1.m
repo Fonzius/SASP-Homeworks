@@ -80,14 +80,28 @@ close all;
 % 
 % sound(audioOut_reshape, 44100); 
 
-
+%%%%Paolo 4096*415
 %%
-% [hPiano, ePiano] = LPCFilter("piano.wav");
-% [hSpeech, eSpeech] = LPCFilter("speech.wav");
+ [hPiano, hNormPiano, ePiano] = LPCFilter("piano.wav");
+ [hSpeech, hNormSpeech, eSpeech] = LPCFilter("speech.wav");
+
+% 
+% error_time_piano = ifft(epiano);
+% sound(abs(error_time_piano),44100)
+% error_time_speech = ifft(espeech);
+% 
+% sound(abs(error_time_speech),44100)
+
+
+
+talking_freq = hNormSpeech .* ePiano;
+talking_time = ifft(talking_freq);
+sound(abs(talking_time),44100)
+
 % [Hpiano, epiano] = LPCFilter("piano.wav");
 % [Hspeech, espeech] = LPCFilter("speech.wav");
-load("epiano.mat")
-load("Hpiano.mat")
+% load("epiano.mat")
+% load("Hpiano.mat")
 
 
 %% COLA
@@ -156,17 +170,7 @@ sound(abs(wh),44100);
 
 %%
 
-error_time_piano = ifft(epiano);
-sound(abs(error_time_piano),44100)
-error_time_speech = ifft(espeech);
 
-sound(abs(error_time_speech),44100)
-
-
-
-talking_freq = Hspeech .* epiano;
-talking_time = ifft(talking_freq);
-sound(abs(talking_time),44100)
 
 
 % a_exp1 = ones(size(a,1),1);
