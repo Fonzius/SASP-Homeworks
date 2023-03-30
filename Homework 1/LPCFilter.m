@@ -3,20 +3,20 @@ function[H_reshape, H_norm_reshape error_freq] = LPCFilter (audioFile)
 % Import the files
 [signal, fs] = audioread(audioFile);
 
-%%%% add windowing to the signal
-% segment == window 
-% 5 ms for SPEECH! is taken from lesson as example segment length
-% for harmonic and noise signal, probably we could have longer windows (
-% more segments in each window)
+%%%% PART 1: add windowing to the signal
+%%%% segment == window 
+%%%% 5 ms for SPEECH! is taken from lesson as example segment length
+%%%% for harmonic and noise signal, probably we could have longer windows (
+%%%% more segments in each window)
+%%%% to get the window length, it need to satisfy the staionary assumption
 
-
-%%%% staionary assumption, recording 20230317, 31:57 --> the mean and the
-%%%% variance don't change with time. 
+%%%% Staionary Assumption, recording 20230317, 31:57 --> ge with time. 
 %%%% we need to compute the mean and variance to make sure they don't
 %%%% change in each segment.
+
 M = floor(5e-3*fs); % How many samples in each segment
 
-
+%%%% Part 2: choose p
 %%%% recording 20230317, 39:46 --> error signal (in time) is longer than
 %%%% each windowed signal, due to the convolution
 %%%% p is the length of the filter
@@ -42,38 +42,6 @@ s = reshape(paddedSignal,M,num_segment)';
 s_fft = fft(paddedSignal);
 
 s_fft_seg = fft(s')';
-%%%%%////Method by Marco 
-%  index = 1:M:length(signal); %resize the piano signal
-% s = zeros(length(index), M); %piano signal split in segments
-% 
-% % Create a new signal by appending zeros at the end s.t. length(paddedSignal) is
-% % multiple of M
-% paddedSignal = zeros(numel(s),1);
-% paddedSignal(1:length(signal)) = signal(:);
-% 
-% % split the signal in segments of length M
-% for ii = 1:length(s)
-%     s(ii,:) = paddedSignal(index(ii) : index(ii)+M-1);
-% end
-
-
-% 
-% % Create the r vector of the autocorrelations with sample lag 1:M
-% r = zeros(length(s), size(s,2)); % n , p
-% for nn = 1:length(s)
-%     for pp = 1:M
-%         r(nn,pp) = sum(s(nn,1:M-pp).*s(nn,1+pp:M));
-%     end
-% end
-% 
-% 
-% % Create autocorrelation vector with sample lags 0:M-1
-% acorrVector = zeros(length(s), size(s,2));
-% for nn = 1:length(s)
-%     for pp = 0:M-1
-%         acorrVector(nn,pp+1) = sum(s(nn,1:M-pp).*s(nn,1+pp:M));
-%     end
-% end
 
 
 

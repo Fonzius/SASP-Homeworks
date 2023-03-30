@@ -1,6 +1,12 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%/////////Get stft of the audio file/////////%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 clc
 clear
 close all
+
+
 %  [x, fs] = audioread('piano.wav');
  [x, fs] = audioread('speech.wav');
 
