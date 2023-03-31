@@ -1,4 +1,4 @@
-function[H] = LPCSteepestDescent(audioFile)
+function[w] = LPCSteepestDescent(audioFile)
 
 audioFile = "piano.wav";
 [signal, fs] = audioread(audioFile);
@@ -18,12 +18,22 @@ for ii = 1:length(s)
     s(ii,:) = paddedSignal(index(ii) : index(ii)+M-1);
 end
 
-R = zeros(M,M,length(s));
 for ii = 1:length(s)
-    R(:,:,ii) = corrmtx(s(ii,:),size(s,2)-1);
+    r(ii,:) = xcorr(s(ii,:));
+    R = toeplitz(r(ii,(end+1)/2:end));
+    eigR(ii,:) = eig(R)';
 end
 
-mu = 1/max(eig(R));
+%r=r((end+1)/2:-1:1);
+
+% R = zeros(M,M,length(s));
+% for ii = 1:length(s)
+%     R(:,:,ii) = corrmtx(s(ii,:),size(s,2)-1);
+% end
+
+for ii = 1:size(R,3)
+    mu = 1/max(eig(R(:,:,ii)));
+end
 
 tau = 5 * ceil(1/(2*mu+min(eig(R)))); %CHECK HOW MANY TAU WE NEED TO CONVERGE TO SOMETHING NICE
 
@@ -32,15 +42,15 @@ u = zeros(length(s),M);
 
 
 for tt = 1:tau
-    for ii = 1:length(s)
+    for ii = 1:size(s,1)
         temp = conv(s(ii,:),w(ii,:));
         u(ii,:) = temp(ceil(length(temp)/2):end);
     end
     
     p = zeros(size(s));
-    for ii = 1:lenght(s)
+    for ii = 1:size(s,1)
         for jj = 1:M
-            p(ii,jj) = avg(u(ii,1:jj) .* conj(s(ii,1:jj)));
+            p(ii,jj) = avg(u(ii,1:jj) .* conj(s(ii,1:jj)),"all");
         end
     end
     
@@ -50,7 +60,3 @@ for tt = 1:tau
         w(ii,:) = w(ii,:) * mu*(p(ii,:)-R(:,:,ii)*w(ii,:)');
     end
 end
-
-
-
-

@@ -19,14 +19,14 @@ close all;
 %%
 windowLength_piano = 2048; %2000
 windowLength_speech = 2048; %220
-p_piano = 10; % test, get 5 peaks, so p = 10
-p_speech = 46; % 44100/1000 = 44.1
+p_piano = 10; % 10    % test, get 5 peaks, so p = 10
+p_speech = 46; % 46    % 44100/1000 = 44.1
 % windowtype = "hann";
 
-method = 1; % 1 for close form, 2 for steepest descent
+method = 2; % 1 for close form, 2 for steepest descent
 
-[aPiano, ePianotime, ePianofreq, M, num_segment,piano_fft, outputZeros, start_index, end_index ] = LPCFilter_new("piano.wav",windowLength_piano,p_piano,1);
-[aSpeech, eSpeechtime, eSpeechfreq, ~, ~,speech_fft, ~, ~, ~] = LPCFilter_new("speech.wav",windowLength_speech,p_speech,1);
+[aPiano, ePianotime, ePianofreq, M, num_segment,piano_fft, outputZeros, start_index, end_index ] = LPCFilter_new("piano.wav",windowLength_piano,p_piano,method);
+[aSpeech, eSpeechtime, eSpeechfreq, ~, ~,speech_fft, ~, ~, ~] = LPCFilter_new("speech.wav",windowLength_speech,p_speech,method);
 
 
 %% Time domain filter 
@@ -41,14 +41,6 @@ method = 1; % 1 for close form, 2 for steepest descent
 % output_time_direct = sum(matrix_synth,1);
 % output = output_time_direct / max(abs(output_time_direct));
 % sound(output,44100)
-
-
-%% Frequency test new
-% Hpiano = piano_fft ./ePianofreq;
-% Hspeech = speech_fft ./eSpeechfreq;
-% 
-% talking_seg_freq = ePianofreq.*Hspeech;
-% talking_seg_time = ifft(talking_seg_freq')';
 
 
 
@@ -77,25 +69,19 @@ for ss = 1:num_segment
     [filterHpiano_freq(:,ss),~] = freqz(1,aPiano(:,ss),"whole",M);
     [filterAspeech_freq(:,ss),~] = freqz(aSpeech(:,ss),1,"whole",M);
     [filterHspeech_freq(:,ss),~] = freqz(1,aSpeech(:,ss),"whole",M);
+    piano_H_norm(:,ss) = (filterHpiano_freq(:,ss)/max(abs(filterHpiano_freq(:,ss))))*max(abs(piano_fft(:,ss)));
+    speech_H_norm(:,ss) = (filterHspeech_freq(:,ss)/max(abs(filterHspeech_freq(:,ss))))*max(abs(speech_fft(:,ss)));    
+    error_piano(:,ss) =  piano_fft(:,ss)./ piano_H_norm(:,ss);   
+    talking_freq(:,ss) = error_piano(:,ss) .* speech_H_norm(:,ss);
+    error_piano_time(:,ss) = ifft(error_piano(:,ss));
+    talking_time(:,ss) = ifft(talking_freq(:,ss));
+
 end
-
-for nn = 1:num_segment
-   piano_H_norm(:,nn) = (filterHpiano_freq(:,nn)/max(abs(filterHpiano_freq(:,nn))))*max(abs(piano_fft(:,nn)));
-   speech_H_norm(:,nn) = (filterHspeech_freq(:,nn)/max(abs(filterHspeech_freq(:,nn))))*max(abs(speech_fft(:,nn)));    
-end
-
-
-
-for nn = 1:num_segment
-    error_piano(:,nn) =  piano_fft(:,nn)./ piano_H_norm(:,nn);   
-    talking_freq(:,nn) = error_piano(:,nn) .* speech_H_norm(:,nn);
-    error_piano_time(:,nn) = ifft(error_piano(:,nn));
-    talking_time(:,nn) = ifft(talking_freq(:,nn));
-end
+  
 
 talking_time = talking_time';
 
-
+% Back to time domain (COLA)
 matrix_synth = zeros(size(ePianotime,1),length(outputZeros));
 for i = 1:length(start_index)
     matrix_synth(i,start_index(i):end_index(i)) = talking_time(i,:);
@@ -115,7 +101,7 @@ if ~exist('GenerateSound','dir')
     mkdir('GenerateSound');
 end
 
-filename = ['GenerateSound/TI-wp' num2str(windowLength_piano) '-ws' num2str(windowLength_speech) '-pp' num2str(p_piano) '-ps' num2str(p_speech) '.wav'];
+filename = ['GenerateSound/TI-M' num2str(method) '-wp' num2str(windowLength_piano) '-ws' num2str(windowLength_speech) '-pp' num2str(p_piano) '-ps' num2str(p_speech) '.wav'];
 audiowrite(filename,output,44100);
 
 

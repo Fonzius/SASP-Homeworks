@@ -57,7 +57,7 @@ end
 s_fft = fft(s)';
 
 
-if method == 1
+
     %% auto-correlation matrix 
     %%%% find a to minimize the short-time mean-squared error   
     r_auto_correlation = zeros(p+1, num_segment);
@@ -80,6 +80,9 @@ if method == 1
             end 
         end 
     end
+%% Close form method
+if method == 1
+
     a = zeros(p,num_segment);
     a_test = zeros(p,num_segment);
     R_inverse = zeros(p,p,num_segment);
@@ -92,10 +95,9 @@ if method == 1
         R_inverse(:,:,ss) = inv(R(:,:,ss));
         a(:,ss) = R_inverse(:,:,ss) * r(:,ss);
     end    
-    r = r';
-    a = a';
-    a_exp1 = ones(size(a,1),1);
-    a_exp =[a_exp1 -1.*a];    
+%     a = a';
+%     a_exp1 = ones(size(a,1),1);
+%     a_exp =[a_exp1 -1.*a];    
 %     % %%%% compare with lpc by matlab
 %     aaaa = zeros(size(a_exp'));
 %     gggg = zeros(size(a_exp'));
@@ -106,31 +108,41 @@ if method == 1
 %     gggg =gggg';
 
 
-
+%% Steepest decent method
 elseif method == 2
+    n_steps = 2000;
 
-%     % steepest
-%     eigenvalues_speech = eig(R_speech);
-%     eigenvalues_music = eig(R_music);
-%     mu_speech = fac * 2/max(eigenvalues_speech);
-%     mu_music = fac * 2/max(eigenvalues_music);
-%     
-%     w_speech = zeros(p_speech,1);
-%     w_music = zeros(p_music,1);
-%     for n = 1:n_steps
-%         w_speech = w_speech + mu_speech*(r_speech-R_speech*w_speech);
-%         w_music = w_music + mu_music*(r_music-R_music*w_music);
-%     end
-% 
-%      A_music_steepest = [1; -w_music];
-%     A_speech_steepest = [1; -w_speech];
-% 
-%     
+    lambda = zeros(p,num_segment); %check dimenstion!
+    
+    a = zeros(p,num_segment);
+
+    for ss= 1:num_segment
+        lambda(:,ss) = eig(R(:,:,ss));
+    end
+    % The necessary and sufficient condition for the convergence or stability
+    % 0 < lambda <2/lambdaMax
+    lambdaMax = max(lambda);
+    lambdaMin = min(lambda);
+
+    fac = 0.5;
+    mu = fac .* 2 ./ lambdaMax;
+    tau = 1./(2.*mu.*lambdaMin);
 
 
+    for ss= 1:num_segment
+        for n = 1:n_steps
+            a(:,ss) = a(:,ss) + mu(1,ss).*(r(:,ss)-R(:,:,ss)*a(:,ss));        
+        end    
+    end
+    
 else 
     error('Invalid method!!!')
 end
+
+a = a';
+a_exp1 = ones(size(a,1),1);
+a_exp =[a_exp1 -1.*a];   
+
 %% time domain filter method
 
 s =s';

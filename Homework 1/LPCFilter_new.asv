@@ -57,7 +57,7 @@ end
 s_fft = fft(s)';
 
 
-if method == 1
+
     %% auto-correlation matrix 
     %%%% find a to minimize the short-time mean-squared error   
     r_auto_correlation = zeros(p+1, num_segment);
@@ -80,6 +80,9 @@ if method == 1
             end 
         end 
     end
+%% Close form method
+if method == 1
+
     a = zeros(p,num_segment);
     a_test = zeros(p,num_segment);
     R_inverse = zeros(p,p,num_segment);
@@ -92,58 +95,46 @@ if method == 1
         R_inverse(:,:,ss) = inv(R(:,:,ss));
         a(:,ss) = R_inverse(:,:,ss) * r(:,ss);
     end    
-    r = r';
-    a = a';
-    a_exp1 = ones(size(a,1),1);
-    a_exp =[a_exp1 -1.*a];    
-    % %%%% compare with lpc by matlab
-    aaaa = zeros(size(a_exp'));
-    gggg = zeros(size(a_exp'));
-    for ss =1:num_segment
-    [aaaa(:,ss),gggg(:,ss)]=lpc(s(:,ss),p);
-    end
-    aaaa =aaaa';
-    gggg =gggg';
-
-
-    % 计算频域塑形滤波器
-w = linspace(0, pi, M); % 生成频率向量
-H = freqz(1, a_exp1, w); % 计算H的频域响应
-
-
-% 计算频域误差信号
-E = fft(gggg, length(w));
-E = E(1:length(w)/2+1);
-
-% 计算重构音频信号
-Y = H.*E;
-y = ifft(Y, length(x));
-
-
-elseif method == 2
-
-%     % steepest
-%     eigenvalues_speech = eig(R_speech);
-%     eigenvalues_music = eig(R_music);
-%     mu_speech = fac * 2/max(eigenvalues_speech);
-%     mu_music = fac * 2/max(eigenvalues_music);
-%     
-%     w_speech = zeros(p_speech,1);
-%     w_music = zeros(p_music,1);
-%     for n = 1:n_steps
-%         w_speech = w_speech + mu_speech*(r_speech-R_speech*w_speech);
-%         w_music = w_music + mu_music*(r_music-R_music*w_music);
+%     a = a';
+%     a_exp1 = ones(size(a,1),1);
+%     a_exp =[a_exp1 -1.*a];    
+%     % %%%% compare with lpc by matlab
+%     aaaa = zeros(size(a_exp'));
+%     gggg = zeros(size(a_exp'));
+%     for ss =1:num_segment
+%     [aaaa(:,ss),gggg(:,ss)]=lpc(s(:,ss),p);
 %     end
-% 
-%      A_music_steepest = [1; -w_music];
-%     A_speech_steepest = [1; -w_speech];
-% 
-%     
+%     aaaa =aaaa';
+%     gggg =gggg';
 
 
+%% Steepest decent method
+elseif method == 2
+   
+    fac = 0.35;
+    n_steps = 2000;
+
+    eigenvalues = zeros(p,num_segment); %check dimenstion!
+    mu = zeros(p,num_segment);
+    a = zeros(p,num_segment);
+    for ss= 1:num_segment
+        for mm =1:M
+            eigenvalues(:,ss) = eig(R(:,:,ss));
+            mu(:,ss) = fac * 2/max(eigenvalues(:,ss));
+                for n = 2:n_steps
+                    a(n,ss) = a(n-1,ss) + mu(:,ss).*(r(:,ss)-R(:,:,ss)*a(:,ss));        
+                end
+        end
+    end
+    
 else 
     error('Invalid method!!!')
 end
+
+a = a';
+a_exp1 = ones(size(a,1),1);
+a_exp =[a_exp1 -1.*a];   
+
 %% time domain filter method
 
 s =s';
@@ -157,4 +148,3 @@ for ss =1:num_segment
    error_time_test(ss,:) =ifft(error_freq(ss,:)')';
 end
 
-error_freq =222;
