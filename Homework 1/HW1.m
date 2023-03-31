@@ -21,98 +21,138 @@ windowLength_piano = 2048; %2000
 windowLength_speech = 2048; %220
 p_piano = 10; % test, get 5 peaks, so p = 10
 p_speech = 46; % 44100/1000 = 44.1
-windowtype = "hann";
+% windowtype = "hann";
 
-[aPiano, ePianotime, ePianofreq, M, num_segment,piano_fft, outputZeros, start_index, end_index ] = LPCFilter_new("piano.wav",windowLength_piano,windowtype,p_piano);
-[aSpeech, eSpeechtime, eSpeechfreq, ~, ~,speech_fft, ~, ~, ~] = LPCFilter_new("speech.wav",windowLength_speech,windowtype,p_speech);
+method = 1; % 1 for close form, 2 for steepest descent
+
+[aPiano, ePianotime, ePianofreq, M, num_segment,piano_fft, outputZeros, start_index, end_index ] = LPCFilter_new("piano.wav",windowLength_piano,p_piano,1);
+[aSpeech, eSpeechtime, eSpeechfreq, ~, ~,speech_fft, ~, ~, ~] = LPCFilter_new("speech.wav",windowLength_speech,p_speech,1);
 
 
 %% Time domain filter 
-synth_talk_time_direct = zeros(size(ePianotime));
-for ss =1:size(ePianotime,1) 
-    synth_talk_time_direct(ss,:) = filter(1,aSpeech(ss,:), ePianotime(ss,:)); %%%%right!
-end
-matrix_synth = zeros(size(ePianotime,1),length(outputZeros));
-for i = 1:length(start_index)
-    matrix_synth(i,start_index(i):end_index(i)) = synth_talk_time_direct(i,:);
-end
-output_time_direct = sum(matrix_synth,1);
-output = output_time_direct / max(abs(output_time_direct));
- sound(output,44100)
+% synth_talk_time_direct = zeros(size(ePianotime));
+% for ss =1:size(ePianotime,1) 
+%     synth_talk_time_direct(ss,:) = filter(1,aSpeech(ss,:), ePianotime(ss,:)); %%%%right!
+% end
+% matrix_synth = zeros(size(ePianotime,1),length(outputZeros));
+% for i = 1:length(start_index)
+%     matrix_synth(i,start_index(i):end_index(i)) = synth_talk_time_direct(i,:);
+% end
+% output_time_direct = sum(matrix_synth,1);
+% output = output_time_direct / max(abs(output_time_direct));
+% sound(output,44100)
 
 
 %% Frequency test new
-
-Hpiano = piano_fft ./ePianofreq;
-Hspeech = speech_fft ./eSpeechfreq;
-
-talking_seg_freq = ePianofreq.*Hspeech;
-talking_seg_time = ifft(talking_seg_freq')';
+% Hpiano = piano_fft ./ePianofreq;
+% Hspeech = speech_fft ./eSpeechfreq;
+% 
+% talking_seg_freq = ePianofreq.*Hspeech;
+% talking_seg_time = ifft(talking_seg_freq')';
 
 
 
 %% Frequency domain filter
+filterApiano_freq = zeros(M,num_segment);
+filterHpiano_freq = zeros(M,num_segment);
+filterAspeech_freq = zeros(M,num_segment);
+filterHspeech_freq = zeros(M,num_segment);
+piano_H_norm = zeros(M,num_segment);
+speech_H_norm = zeros(M,num_segment);
+error_piano =  zeros(M,num_segment);
+talking_freq = zeros(M,num_segment);
+error_piano_time = zeros(M,num_segment);
+talking_time = zeros(M,num_segment);
 
-filterApiano_freq = zeros(num_segment,M);
-filterHpiano_freq = zeros(num_segment,M);
-filterAspeech_freq = zeros(num_segment,M);
-filterHspeech_freq = zeros(num_segment,M);
+aPiano =aPiano';
+aSpeech =aSpeech';
+piano_fft = piano_fft';
+speech_fft = speech_fft';
 
-% errorApiano_freq = zeros(num_segment,M);
-% errorHpiano_freq = zeros(num_segment,M);
-% errorAspeech_freq = zeros(num_segment,M);
-% errorHspeech_freq = zeros(num_segment,M);
-
-
+% A,H filter in freq. domain
 for ss = 1:num_segment
-    [filterApiano_freq(ss,:),~] = freqz(aPiano(ss,:),1,"whole",M);
-    [filterHpiano_freq(ss,:),~] = freqz(1,aPiano(ss,:),"whole",M);
-    [filterAspeech_freq(ss,:),~] = freqz(aSpeech(ss,:),1,"whole",M);
-    [filterHspeech_freq(ss,:),~] = freqz(1,aSpeech(ss,:),"whole",M);
+    [filterApiano_freq(:,ss),~] = freqz(aPiano(:,ss),1,"whole",M);
+    [filterHpiano_freq(:,ss),~] = freqz(1,aPiano(:,ss),"whole",M);
+    [filterAspeech_freq(:,ss),~] = freqz(aSpeech(:,ss),1,"whole",M);
+    [filterHspeech_freq(:,ss),~] = freqz(1,aSpeech(:,ss),"whole",M);
+end
+
+for nn = 1:num_segment
+   piano_H_norm(:,nn) = (filterHpiano_freq(:,nn)/max(abs(filterHpiano_freq(:,nn))))*max(abs(piano_fft(:,nn)));
+   speech_H_norm(:,nn) = (filterHspeech_freq(:,nn)/max(abs(filterHspeech_freq(:,nn))))*max(abs(speech_fft(:,nn)));    
 end
 
 
-aPiano_fft = zeros(num_segment,M);
-fft1_piano = zeros(num_segment,M);
-ones1 = ones(size(aPiano));
-for ss = 1:num_segment
-    aPiano_fft(ss,:) = fft(aPiano(ss,:),M);
-    fft1_piano(ss,:) = fft(ones1(ss,:),M);  
+
+for nn = 1:num_segment
+    error_piano(:,nn) =  piano_fft(:,nn)./ piano_H_norm(:,nn);   
+    talking_freq(:,nn) = error_piano(:,nn) .* speech_H_norm(:,nn);
+    error_piano_time(:,nn) = ifft(error_piano(:,nn));
+    talking_time(:,nn) = ifft(talking_freq(:,nn));
 end
 
-Afilterpianofreq = aPiano_fft ./ fft1_piano;
-Afilterpianotime = ifft(Afilterpianofreq);
+talking_time = talking_time';
 
 
-error_piano_freq = piano_fft' .* filterApiano_freq;
-error_speech_freq = speech_fft' .* filterAspeech_freq;
-
-talking_freq_seg = error_piano_freq .* filterHspeech_freq;
-talking_time_seg = ifft(talking_freq_seg);
-
-% COLA
-matrix_synth = zeros(size(ePiano,1),length(outputZeros));
+matrix_synth = zeros(size(ePianotime,1),length(outputZeros));
 for i = 1:length(start_index)
-    matrix_synth(i,start_index(i):end_index(i)) = synth_talk_time_direct(i,:);
+    matrix_synth(i,start_index(i):end_index(i)) = talking_time(i,:);
 end
-output_time_direct = sum(matrix_synth,1);
-output = output_time_direct / max(abs(output_time_direct));
-sound(output,44100)
+output_time = sum(matrix_synth,1);
+output = output_time / max(abs(output_time));
+sound(real(output),44100)
 
 
-
-
-% for ss = 1:length()
-% [A(:,nn),~] = freqz(aPiano(:,nn),1,"whole",M);
-
-% talking_freq = hSpeech .* ePiano;
-% talking_time = ifft(talking_freq);
+% Right!
+% filterApiano_freq = zeros(M,num_segment);
+% filterHpiano_freq = zeros(M,num_segment);
+% filterAspeech_freq = zeros(M,num_segment);
+% filterHspeech_freq = zeros(M,num_segment);
+% piano_H_norm = zeros(M,num_segment);
+% speech_H_norm = zeros(M,num_segment);
+% error_piano =  zeros(M,num_segment);
+% talking_freq = zeros(M,num_segment);
+% error_piano_time = zeros(M,num_segment);
+% talking_time = zeros(M,num_segment);
 % 
-% talking_time_cola = adding(talking_time,0.5,windowLength_piano);
+% aPiano =aPiano';
+% aSpeech =aSpeech';
+% piano_fft = piano_fft';
+% speech_fft = speech_fft';
+% 
+% % A,H filter in freq. domain
+% for ss = 1:num_segment
+%     [filterApiano_freq(:,ss),~] = freqz(aPiano(:,ss),1,"whole",M);
+%     [filterHpiano_freq(:,ss),~] = freqz(1,aPiano(:,ss),"whole",M);
+%     [filterAspeech_freq(:,ss),~] = freqz(aSpeech(:,ss),1,"whole",M);
+%     [filterHspeech_freq(:,ss),~] = freqz(1,aSpeech(:,ss),"whole",M);
+% end
+% 
+% for nn = 1:num_segment
+%    piano_H_norm(:,nn) = (filterHpiano_freq(:,nn)/max(abs(filterHpiano_freq(:,nn))))*max(abs(piano_fft(:,nn)));
+%    speech_H_norm(:,nn) = (filterHspeech_freq(:,nn)/max(abs(filterHspeech_freq(:,nn))))*max(abs(speech_fft(:,nn)));    
+% end
+% 
+% 
+% 
+% for nn = 1:num_segment
+%     error_piano(:,nn) =  piano_fft(:,nn)./ piano_H_norm(:,nn);   
+%     talking_freq(:,nn) = error_piano(:,nn) .* speech_H_norm(:,nn);
+%     error_piano_time(:,nn) = ifft(error_piano(:,nn));
+%     talking_time(:,nn) = ifft(talking_freq(:,nn));
+% end
+% 
+% talking_time = talking_time';
+% 
+% 
+% matrix_synth = zeros(size(ePianotime,1),length(outputZeros));
+% for i = 1:length(start_index)
+%     matrix_synth(i,start_index(i):end_index(i)) = talking_time(i,:);
+% end
+% output_time = sum(matrix_synth,1);
+% output = output_time / max(abs(output_time));
+% sound(real(output),44100)
 
-
-% sound(abs(talking_time_cola),44100)
-% clear sound
 
 %% Audiowrite
 % windowLength_piano = 2000; %2000

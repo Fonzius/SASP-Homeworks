@@ -68,10 +68,21 @@ for i=3:N_windows
     A_speech_steepest = [1; -w_speech];
 
     music_error_close_form = filter(A_music_close_form, 1, music_segment);
+    speech_error_close_form = filter(A_speech_close_form, 1, speech_segment);
     music_error_steepest = filter(A_music_steepest, 1, music_segment);
     audio_synth_close_form = filter(1, A_speech_close_form, music_error_close_form);
     audio_synth_steepest = filter(1, A_speech_steepest, music_error_steepest);
 
+    %%% go to frequency domain
+    speech_segment_freq = fft(speech_segment);
+    speech_errorfreq = fft(speech_error_close_form);
+    music_errorfreq = fft(music_error_close_form);
+    Hspeech_freq = speech_segment_freq./ speech_errorfreq ;
+    talking_freq = music_errorfreq.* Hspeech_freq;
+    talking_time = ifft(talking_freq);
+    %%%% check if audio_synth_close_form ==  talking_time
+   
+  
     output_close_form(start_index:end_index, 1) = output_close_form(start_index:end_index, 1) + audio_synth_close_form;
     output_steepest(start_index:end_index, 1) = output_steepest(start_index:end_index, 1) + audio_synth_steepest;
 end

@@ -1,4 +1,6 @@
-function[a_exp, error_time_direct,error_freq,  M, num_segment,s_fft, output_signal_time_direct, start_index, end_index ] = LPCFilter_new (audioFile, windowlength, windowtype, p )
+function[a_exp, error_time_direct,error_freq,  M, num_segment,s_fft, ...
+    output_signal_time_direct, start_index, end_index ] =...
+    LPCFilter_new (audioFile, windowlength, p , method )
 
 % Import the files
 [signal, fs] = audioread(audioFile);
@@ -35,16 +37,6 @@ M = windowlength;
 
 %% windowing
 
-%%%% rectangular window
-% num_segment = ceil(length(signal)/M);
-% num_pad = num_segment* M -length(signal);
-% paddedSignal = padarray(signal,[num_pad 0],0,'post');
-% s = reshape(paddedSignal,M,num_segment)';
-% s_fft = fft(paddedSignal);
-% s_fft_seg = fft(s')';
-
-%%%% hamming window -mine -wrong
-
 win = hann(windowlength);
 hop_size = floor(windowlength/4);
 num_segment = ceil((length(signal)-windowlength)/hop_size + 1);
@@ -62,78 +54,84 @@ for i=1:num_segment
     signal_reshape(:,i) = signal(start_index(i):end_index(i));
 end
     s = win .* signal_reshape;
-
-
-%   [s1,num_segment1] = windowing(signal,windowtype,windowlength);
 s_fft = fft(s)';
 
-%% auto-correlation matrix 
-%%%% find a to minimize the short-time mean-squared error
 
-r_auto_correlation = zeros(p+1, num_segment);
-for ss = 1:num_segment
-    for ii_kk = 0:p
-        for mm = 1:M-(ii_kk)
-            r_auto_correlation(ii_kk+1,ss) = r_auto_correlation(ii_kk+1,ss)+ s(mm,ss)*s(mm+ii_kk,ss);
-        end
-    end 
-end
-% wrong previous version
-% M --> p+1
-% auto_para_cal = zeros(M,M);
-% r_auto_correlation = zeros(M);
-% for ss = 1:num_segment
-%     sample_segment_current = s(ss,:)';
-%     % get calculation parameter matrix of auto-correlation
-%     for mm = 1:M        
-%         auto_para_cal(mm, 1:M-mm+1) = sample_segment_current(mm:end)'; % fill the matrix 
-%     end
-%     auto_correlation_current = auto_para_cal * sample_segment_current;
-%     r_auto_correlation(:,ss) = auto_correlation_current';
-% end
-
-% test for normalization
-% r_auto_correlation_norm = r_auto_correlation ./ max(r_auto_correlation, [], 1);
-
-
-r = r_auto_correlation(2:end,:);
-R = zeros(p,p,num_segment);
-for ss= 1:num_segment
-    for ii = 1:p
-        for jj = 1:p
-            R(ii,jj,ss) = r_auto_correlation(abs(ii-jj)+1,ss);
+if method == 1
+    %% auto-correlation matrix 
+    %%%% find a to minimize the short-time mean-squared error   
+    r_auto_correlation = zeros(p+1, num_segment);
+    for ss = 1:num_segment
+        for ii_kk = 0:p
+            for mm = 1:M-(ii_kk)
+                r_auto_correlation(ii_kk+1,ss) = r_auto_correlation(ii_kk+1,ss)+ s(mm,ss)*s(mm+ii_kk,ss);
+            end
         end 
-    end 
+    end
+    
+    % test for normalization
+    % r_auto_correlation_norm = r_auto_correlation ./ max(r_auto_correlation, [], 1);   
+    r = r_auto_correlation(2:end,:);
+    R = zeros(p,p,num_segment);
+    for ss= 1:num_segment
+        for ii = 1:p
+            for jj = 1:p
+                R(ii,jj,ss) = r_auto_correlation(abs(ii-jj)+1,ss);
+            end 
+        end 
+    end
+    a = zeros(p,num_segment);
+    a_test = zeros(p,num_segment);
+    R_inverse = zeros(p,p,num_segment);
+    
+    %%%%%%%%%%% VERY SLOW
+    for ss= 1:num_segment
+        R_current_seg = R(:,:,ss);
+    %     R_current_seg_inv = inv(R_current_seg);
+        a_test(:,ss) = R_current_seg\r(:,ss);
+        R_inverse(:,:,ss) = inv(R(:,:,ss));
+        a(:,ss) = R_inverse(:,:,ss) * r(:,ss);
+    end    
+    r = r';
+    a = a';
+    a_exp1 = ones(size(a,1),1);
+    a_exp =[a_exp1 -1.*a];    
+%     % %%%% compare with lpc by matlab
+%     aaaa = zeros(size(a_exp'));
+%     gggg = zeros(size(a_exp'));
+%     for ss =1:num_segment
+%     [aaaa(:,ss),gggg(:,ss)]=lpc(s(:,ss),p);
+%     end
+%     aaaa =aaaa';
+%     gggg =gggg';
+
+
+
+elseif method == 2
+
+%     % steepest
+%     eigenvalues_speech = eig(R_speech);
+%     eigenvalues_music = eig(R_music);
+%     mu_speech = fac * 2/max(eigenvalues_speech);
+%     mu_music = fac * 2/max(eigenvalues_music);
+%     
+%     w_speech = zeros(p_speech,1);
+%     w_music = zeros(p_music,1);
+%     for n = 1:n_steps
+%         w_speech = w_speech + mu_speech*(r_speech-R_speech*w_speech);
+%         w_music = w_music + mu_music*(r_music-R_music*w_music);
+%     end
+% 
+%      A_music_steepest = [1; -w_music];
+%     A_speech_steepest = [1; -w_speech];
+% 
+%     
+
+
+else 
+    error('Invalid method!!!')
 end
-a = zeros(p,num_segment);
-a_test = zeros(p,num_segment);
-R_inverse = zeros(p,p,num_segment);
-
-%%%%%%%%%%% VERY SLOW
-for ss= 1:num_segment
-    R_current_seg = R(:,:,ss);
-%     R_current_seg_inv = inv(R_current_seg);
-    a_test(:,ss) = R_current_seg\r(:,ss);
-    R_inverse(:,:,ss) = inv(R(:,:,ss));
-    a(:,ss) = R_inverse(:,:,ss) * r(:,ss);
-end
-
-r = r';
-a = a';
-a_exp1 = ones(size(a,1),1);
-a_exp =[a_exp1 -1.*a];
-
-
-% %%%% compare with lpc by matlab
-aaaa = zeros(size(a_exp'));
-gggg = zeros(size(a_exp'));
-for ss =1:num_segment
-[aaaa(:,ss),gggg(:,ss)]=lpc(s(:,ss),p);
-end
-aaaa =aaaa';
-
-
-%% filter method by jerry
+%% time domain filter method
 
 s =s';
 error_time_direct = zeros(size(s));
@@ -146,30 +144,3 @@ for ss =1:num_segment
    error_time_test(ss,:) =ifft(error_freq(ss,:)')';
 end
 
-
-
-
-% %% get filter
-% 
-% H = zeros(size(s)); %shaping filter
-% % A = zeros(size(s));
-% % H_1 = zeros(size(s));
-% for ss = 1:num_segment
-%     [H_index,~] = freqz(1, a_exp(ss,:),"whole",M);
-%     H(:,ss) = H_index';
-% end
-% 
-% A = 1./H; %whitening filter
-% 
-% A_norm = normalize(A);
-% H_norm = normalize(H);
-% s_fft_norm = normalize(s_fft);
-% % A_reshape = reshape(A,[numel(s) 1]);
-% % H_reshape = reshape(H,[numel(s) 1]);
-% 
-% error_freq = A_norm .* s_fft_norm;
-% % error_time = ifft(error_freq);
-% 
-% 
-% % H_norm = H ./max(abs(H),[],1) .* max(abs(s_fft_seg),[],1);
-% % H_norm_reshape = reshape(H_norm',[numel(s) 1]);
