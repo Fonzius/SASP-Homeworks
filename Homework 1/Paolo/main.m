@@ -60,9 +60,6 @@ for nn = 1:chunksNum_instr
 end
 
 
-
-
-
 instr_st_res =  zeros(wl, chunksNum_instr); 
 instr_st_res_w = zeros(wl,chunksNum_instr);
 talking_instr_st_res =  zeros(wl, chunksNum_instr); 

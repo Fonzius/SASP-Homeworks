@@ -3,6 +3,10 @@ clc;
 clear all;
 close all;
 
+%%%%
+% Q1: check windowing and adding 
+% Q2: check steepest 
+%%%%
 %% Legend
 % p: number past samples
 % n: current time
@@ -12,182 +16,57 @@ close all;
 
 % speech: 5ms, 
 
-%% double check by LPC-matlab
-% [signal, fs] = audioread("piano.wav");
-% 
-% M = floor(5e-3*fs);
-% 
-% num_segment = ceil(length(signal)/M);
-% num_pad = num_segment* M -length(signal);
-% paddedSignal = padarray(signal,[num_pad 0],0,'post');
-% s = reshape(paddedSignal,M,num_segment)';
-% s_fft = fft(paddedSignal);
-% 
-% pred = zeros(size(s));
-% err = zeros(size(s));
-% 
-% for ss = 1:num_segment
-%     [pred(ss,:) err(ss,:)] = lpc(s(ss,:), 219);
-% end
-% 
-% 
-% H = zeros(size(s));
-% 
-% for ss = 1:num_segment
-%     pred_index = freqz(1, pred(ss,:),220);
-%     H_current = fftshift(pred_index);
-%     H(ss,:) = H_current';
-% end
-% 
-% A = 1./H;
-% 
-% A_reshape = reshape(A',[848980 1]);
-% H_reshape = reshape(H',[848980 1]);
-% 
-% error_freq = A_reshape .* s_fft;
-% error_time = ifft(error_freq, fs);
-
-
-
-%%%%%%% chatgpt
-% % Obtain LPC coefficients
-% LPC_order = 12;
-% LPC_coeffs = lpc(x, LPC_order);
-% 
-% % Obtain the prediction filter
-% prediction_filter = dfilt.df1(LPC_coeffs);
-% 
-% % Filter the original signal using the prediction filter
-% residual = filter(prediction_filter.Numerator, 1, x);
-% 
-% % Obtain the LPC synthesis filter
-% synth_coeffs = [1, -LPC_coeffs(2:end)];
-% synth_filter = dfilt.df2sos(synth_coeffs);
-% 
-% % Synthesize the LPC residual using the LPC synthesis filter
-% predicted = filter(synth_filter.Numerator, synth_filter.Denominator, residual);
-% 
-% 
-
-
-% sound(abs(error_time))
-% audioOut =zeros(size(s));
-% for ss = 1:num_segment
-%     audioOut(ss,:) = filter([0 -pred(ss,2:end)], 1, s(ss,:));
-% end
-% 
-% audioOut_reshape = reshape(audioOut',[848980 1]);
-% 
-% sound(audioOut_reshape, 44100); 
-
-
 %%
- [hPiano, ePiano] = LPCFilter("piano.wav");
- [hSpeech, eSpeech] = LPCFilter("speech.wav");
-% [Hpiano, epiano] = LPCFilter("piano.wav");
-% [Hspeech, espeech] = LPCFilter("speech.wav");
-% load("epiano.mat")
-% load("Hpiano.mat")
+windowLength_piano = 2048; %2000
+windowLength_speech = 2048; %220
+p_piano = 128; % test, get 5 peaks, so p = 10
+p_speech = 32; % 44100/1000 = 44.1
+windowtype = "hann";
+
+[aPiano, ePiano, outputZeros, start_index, end_index ] = LPCFilter_new("piano.wav",windowLength_piano,windowtype,p_piano);
+[aSpeech, eSpeech, ~, ~, ~] = LPCFilter_new("speech.wav",windowLength_speech,windowtype,p_speech);
 
 
-%% COLA
-[piano,fs] = audioread("piano.wav");
+%% time synthesis directly
+synth_talk_time_direct = zeros(size(ePiano));
 
-
-
-M = floor(5e-3*fs); % How many samples in each segment
-num_segment = ceil(length(piano)/M);
-
-hPiano = reshape(Hpiano', M, num_segment);
-hPiano = hPiano';
-
-
-num_pad = num_segment* M -length(piano);
-paddedPiano = padarray(piano,[num_pad 0],0,'post');
-s = reshape(paddedPiano,M,num_segment)';
-
-sPadded = zeros(num_segment,M+size(hPiano,2)-1);
-for ii = 1:size(s,2)
-    sPadded(:,ii) = s(:,ii);
+for ss =1:size(ePiano,1) 
+    synth_talk_time_direct(ss,:) = filter(1,aSpeech(ss,:), ePiano(ss,:)); %%%%right!
 end
-s_fft = fft(sPadded')';
 
-hPiano_time = ifft(hPiano')';
-hPiano_time_pad = zeros(num_segment,M+size(hPiano,2)-1);
-for ii = 1:size(s,2)
-    hPiano_time_pad(:,ii) = hPiano_time(:,ii);
+
+matrix_synth = zeros(size(ePiano,1),length(outputZeros));
+for i = 1:length(start_index)
+    matrix_synth(i,start_index(i):end_index(i)) = synth_talk_time_direct(i,:);
 end
-hPiano_fft = fft(hPiano_time_pad')';
+output_time_direct = sum(matrix_synth,1);
 
-whitenedPiano = hPiano_fft.*s_fft;
-whitenedPiano = ifft(whitenedPiano')';
-%whitenedPiano_time = zeros(size(piano));
-
-
-%%%% CHECK tomorrow!!!!!!!!!!!!!
-whitenedPiano_middle_segment = whitenedPiano(2:end,220:end)'; %3859*439
-whitenedPiano_middle_segment1 =reshape(whitenedPiano_middle_segment',1,numel(whitenedPiano_middle_segment));
-whitenedPiano_first_segment = whitenedPiano(1,1:220);
-wh = [whitenedPiano_first_segment whitenedPiano_middle_segment1];
-
-
-
-% oN = M+size(hPiano,2)-1;
-% 
-% wp = zeros(size(piano));
-% 
-% for ii = 1:size(whitenedPiano)
-%     wp(1 + M*(ii-1) : M*(ii-1)+oN) = wp(1 + M*(ii-1) : M*(ii-1)+oN) + whitenedPiano(ii,:)';
-% end
-% 
-
-%%
-
-whitenedPiano_middle_segment = whitenedPiano(2:end,220:end)'; %3859*439
-whitenedPiano_middle_segment1 =reshape(whitenedPiano_middle_segment',1,numel(whitenedPiano_middle_segment));
-whitenedPiano_first_segment = whitenedPiano(1,1:220);
-wh = [whitenedPiano_first_segment whitenedPiano_middle_segment1];
-sound(abs(wh),44100);
-% whitenedPiano_middle_segment = whitenedPiano(2:end,220)';
-% 
-% whitenedPiano_first_segment = whitenedPiano(1,1:220);
-% 
-% wh = [whitenedPiano_first_segment whitenedPiano_middle_segment];
-
-%%
-
-error_time_piano = ifft(epiano);
-sound(abs(error_time_piano),44100)
-error_time_speech = ifft(espeech);
-
-sound(abs(error_time_speech),44100)
-
-
-
-talking_freq = hSpeech .* ePiano;
-talking_time = ifft(talking_freq);
-sound(abs(talking_time),44100)
-
-
-% a_exp1 = ones(size(a,1),1);
-% a_exp =[a_exp1 -1.*a];
-% 
-% 
-% H = fftshift(freqz(1, a_exp));
-
-% H = zeros(size(a_exp));
-% for ii = 1:size(a_exp,1)
-%     H(ii,:) = freqz(1, a_exp(ii,:), 220);
-% end
-% A = 1./H;
-% 
-% a_exp0 = zeros(size(a,1),1);
-% a_exp_p =[a_exp0 a];
-% 
-% P = zeros(size(a_exp_p));
-% for ii = 1:size(a_exp_p,1)
-%     P(ii,:) = freqz(a_exp_p(ii,:),1,220);
+% for i=1:size(ePiano,1) %1656
+%     outputZeros(start_index(i):end_index(i),1) = synth_talk_time_direct(i,:) ; %%%%%wrong!!!
 % end
 
+output = output_time_direct / max(abs(output_time_direct));
+sound(output,44100)
+% talking_freq = hSpeech .* ePiano;
+% talking_time = ifft(talking_freq);
+% 
+% talking_time_cola = adding(talking_time,0.5,windowLength_piano);
+
+
+% sound(abs(talking_time_cola),44100)
+% clear sound
+
+%% Audiowrite
+windowLength_piano = 2000; %2000
+windowLength_speech = 2000; %220
+p_piano = 8; % test, get 5 peaks, so p = 10
+p_speech = 50; % 44100/1000 = 44.1
+
+if ~exist('GenerateSound','dir')
+    mkdir('GenerateSound');
+end
+
+filename = ['GenerateSound/TI-wp' num2str(windowLength_piano) '-ws' num2str(windowLength_speech) '-pp' num2str(p_piano) '-ps' num2str(p_speech) '.wav'];
+audiowrite(filename,abs(talking_time_cola),44100);
 
 

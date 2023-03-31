@@ -7,8 +7,8 @@ clear
 close all
 
 
-%  [x, fs] = audioread('piano.wav');
- [x, fs] = audioread('speech.wav');
+  [x, fs] = audioread('piano.wav');
+%  [x, fs] = audioread('speech.wav');
 
 %% Method 1: waterfall 
 % win_size = 1024;
@@ -100,16 +100,16 @@ overlap_pct = 50;
 
 % Plot initial spectrogram
 fig = figure();
-plot_handle = plot(f, abs(s(:, 1)));
-axis([0 max(f) 0 max(abs(s(:)))]);
+plot_handle = plot(f, 20*log(abs(s(:, 1))));
+axis([0 max(f) 0 max(20*log(abs(s(:))))]);
 xlabel('Frequency (Hz)');
 ylabel('Amplitude');
-xlim([0 5000])
+xlim([0 2500])
 title('Spectrogram');
 grid on;
 
 % Set up video writer object
-writerObj = VideoWriter('speech-spectrogram.mp4', 'MPEG-4');
+writerObj = VideoWriter('dbpiano-spectrogram.mp4', 'MPEG-4');
 writerObj.FrameRate = 30;
 open(writerObj);
 

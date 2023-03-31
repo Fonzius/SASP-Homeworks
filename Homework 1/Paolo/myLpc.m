@@ -92,4 +92,3 @@ else
     whiteningFilters = A;
 end
 
-shapingFilters =shapingFilters+1;
