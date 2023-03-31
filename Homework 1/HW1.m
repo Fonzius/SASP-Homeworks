@@ -1,52 +1,22 @@
 
 clc;
-clear all;
-close all;
+clear;
+close all; 
 
-%%%%
-% Q1: check windowing and adding 
-% Q2: check steepest 
-%%%%
-%% Legend
-% p: number past samples
-% n: current time
-% k: k_th coefficient
-% M: segment length
-% a: filter coefficients
-
-% speech: 5ms, 
-
-%%
-windowLength_piano = 2048; %2000
-windowLength_speech = 2048; %220
-p_piano = 10; % 10    % test, get 5 peaks, so p = 10
-p_speech = 46; % 46    % 44100/1000 = 44.1
-% windowtype = "hann";
+%% 
+windowLength_piano = 2048; 
+windowLength_speech = 2048; 
+p_piano = 10; % 10    %  get 5 peaks, so p = 10
+p_speech = 46; % 46    %  44100/1000 = 44.1
 
 method = 2; % 1 for close form, 2 for steepest descent
 
-[aPiano, ePianotime, ePianofreq, M, num_segment,piano_fft, outputZeros, start_index, end_index ] = LPCFilter_new("piano.wav",windowLength_piano,p_piano,method);
-[aSpeech, eSpeechtime, eSpeechfreq, ~, ~,speech_fft, ~, ~, ~] = LPCFilter_new("speech.wav",windowLength_speech,p_speech,method);
-
-
-%% Time domain filter 
-% synth_talk_time_direct = zeros(size(ePianotime));
-% for ss =1:size(ePianotime,1) 
-%     synth_talk_time_direct(ss,:) = filter(1,aSpeech(ss,:), ePianotime(ss,:)); %%%%right!
-% end
-% matrix_synth = zeros(size(ePianotime,1),length(outputZeros));
-% for i = 1:length(start_index)
-%     matrix_synth(i,start_index(i):end_index(i)) = synth_talk_time_direct(i,:);
-% end
-% output_time_direct = sum(matrix_synth,1);
-% output = output_time_direct / max(abs(output_time_direct));
-% sound(output,44100)
-
+[aPiano, fs, M, num_segment,piano_fft, tot_length, start_index, end_index ] = LPCFilter_new("piano.wav",windowLength_piano,p_piano,method);
+[aSpeech, ~, ~, ~,speech_fft, ~, ~, ~] = LPCFilter_new("speech.wav",windowLength_speech,p_speech,method);
 
 
 %% Frequency domain filter
 
-% Right!
 filterApiano_freq = zeros(M,num_segment);
 filterHpiano_freq = zeros(M,num_segment);
 filterAspeech_freq = zeros(M,num_segment);
@@ -54,6 +24,7 @@ filterHspeech_freq = zeros(M,num_segment);
 piano_H_norm = zeros(M,num_segment);
 speech_H_norm = zeros(M,num_segment);
 error_piano =  zeros(M,num_segment);
+error_speech =  zeros(M,num_segment);
 talking_freq = zeros(M,num_segment);
 error_piano_time = zeros(M,num_segment);
 talking_time = zeros(M,num_segment);
@@ -71,37 +42,60 @@ for ss = 1:num_segment
     [filterHspeech_freq(:,ss),~] = freqz(1,aSpeech(:,ss),"whole",M);
     piano_H_norm(:,ss) = (filterHpiano_freq(:,ss)/max(abs(filterHpiano_freq(:,ss))))*max(abs(piano_fft(:,ss)));
     speech_H_norm(:,ss) = (filterHspeech_freq(:,ss)/max(abs(filterHspeech_freq(:,ss))))*max(abs(speech_fft(:,ss)));    
-    error_piano(:,ss) =  piano_fft(:,ss)./ piano_H_norm(:,ss);   
+    error_piano(:,ss) =  piano_fft(:,ss)./ piano_H_norm(:,ss);  
+    error_speech(:,ss) =  speech_fft(:,ss)./ speech_H_norm(:,ss); 
     talking_freq(:,ss) = error_piano(:,ss) .* speech_H_norm(:,ss);
     error_piano_time(:,ss) = ifft(error_piano(:,ss));
     talking_time(:,ss) = ifft(talking_freq(:,ss));
-
 end
-  
-
 talking_time = talking_time';
 
-% Back to time domain (COLA)
-matrix_synth = zeros(size(ePianotime,1),length(outputZeros));
+
+%% Back to time domain (OLA)
+matrix_synth = zeros(num_segment,tot_length);
 for i = 1:length(start_index)
     matrix_synth(i,start_index(i):end_index(i)) = talking_time(i,:);
 end
 output_time = sum(matrix_synth,1);
 output = output_time / max(abs(output_time));
-sound(real(output),44100)
-
+sound(real(output),fs)
 
 %% Audiowrite
-% windowLength_piano = 2000; %2000
-% windowLength_speech = 2000; %220
-% p_piano = 8; % test, get 5 peaks, so p = 10
-% p_speech = 50; % 44100/1000 = 44.1
 
 if ~exist('GenerateSound','dir')
     mkdir('GenerateSound');
 end
 
 filename = ['GenerateSound/TI-M' num2str(method) '-wp' num2str(windowLength_piano) '-ws' num2str(windowLength_speech) '-pp' num2str(p_piano) '-ps' num2str(p_speech) '.wav'];
-audiowrite(filename,output,44100);
+audiowrite(filename,output,fs);
 
-
+%% Plot Spectrogram
+% f = fs*(0:(M/2))/M;
+% 
+% figure();
+% for i = 1:size(piano_fft,2)
+%     Y1 = 20*log(abs(piano_fft(1:M/2+1,i)));  
+%     Y2 = 20*log(abs(piano_H_norm(1:M/2+1,i)));
+%     Y3 = 20*log(abs(error_piano(1:M/2+1,i)));
+%     plot(f,Y1,f,Y2,f,Y3);
+%     xlabel('Hz');
+%     ylabel('dB');
+%     title('Spectrogram-Piano');
+%     legend('Origin Signal','Shaping Filter','Error Signal');
+%     pause(0.01);
+%     drawnow; 
+% end
+% 
+% figure();
+% for i = 1:size(speech_fft,2)
+%     Z1 = 20*log(abs(speech_fft(1:M/2+1,i)));  
+%     Z2 = 20*log(abs(speech_H_norm(1:M/2+1,i)));
+%     Z3 = 20*log(abs(error_speech(1:M/2+1,i)));
+%     plot(f,Z1,f,Z2,f,Z3);
+%     xlabel('Hz');
+%     ylabel('dB');
+%     title('Spectrogram-Speech');
+%     legend('Origin Signal','Shaping Filter','Error Signal');
+%     pause(0.01);     
+% end
+% 

@@ -1,6 +1,6 @@
-function[a_exp, error_time_direct,error_freq,  M, num_segment,s_fft, ...
-    output_signal_time_direct, start_index, end_index ] =...
-    LPCFilter_new (audioFile, windowlength, p , method )
+function[a_exp, fs, M, num_segment,s_fft, ...
+            length_tot_signal, start_index, end_index ] = ...
+                LPCFilter_new (audioFile, windowlength, p , method )
 
 % Import the files
 [signal, fs] = audioread(audioFile);
@@ -46,7 +46,8 @@ start_index =zeros(num_segment,1);
 end_index =zeros(num_segment,1);
 signal_reshape =zeros(M,num_segment);
 
-output_signal_time_direct = zeros(length(signal),1);
+length_tot_signal = length(signal);
+
 
 for i=1:num_segment
     start_index(i) = (i-1)*hop_size + 1;
@@ -84,14 +85,14 @@ s_fft = fft(s)';
 if method == 1
 
     a = zeros(p,num_segment);
-    a_test = zeros(p,num_segment);
+%     a_test = zeros(p,num_segment);
     R_inverse = zeros(p,p,num_segment);
     
     %%%%%%%%%%% VERY SLOW
     for ss= 1:num_segment
-        R_current_seg = R(:,:,ss);
+%         R_current_seg = R(:,:,ss);
     %     R_current_seg_inv = inv(R_current_seg);
-        a_test(:,ss) = R_current_seg\r(:,ss);
+%         a_test(:,ss) = R_current_seg\r(:,ss);
         R_inverse(:,:,ss) = inv(R(:,:,ss));
         a(:,ss) = R_inverse(:,:,ss) * r(:,ss);
     end    
@@ -127,12 +128,61 @@ elseif method == 2
     fac = 0.5;
     mu = fac .* 2 ./ lambdaMax;
     tau = 1./(2.*mu.*lambdaMin);
-
+%     a_loop = zeros(p,num_segment,n_steps+1);
 
     for ss= 1:num_segment
-        for n = 1:n_steps
-            a(:,ss) = a(:,ss) + mu(1,ss).*(r(:,ss)-R(:,:,ss)*a(:,ss));        
+        for n = 1:n_steps            
+            a(:,ss) = a(:,ss) + mu(1,ss).*(r(:,ss)-R(:,:,ss)*a(:,ss)); 
+%             a_loop(:,ss,n+1) = a(:,ss);          
         end    
+    end
+
+
+    if test_transient ==1
+        a = zeros(p,num_segment);
+        a_loop = zeros(p,num_segment,n_steps+1);
+        for ss= 1:num_segment
+        for n = 1:n_steps            
+            a(:,ss) = a(:,ss) + mu(1,ss).*(r(:,ss)-R(:,:,ss)*a(:,ss)); 
+            a_loop(:,ss,n+1) = a(:,ss);          
+        end    
+    end
+%     a_loop_exp = -1.* a_loop;
+%     a_new_row = ones(1, num_segment, n_steps+1); 
+%     a_loop_exp = cat(1, a_new_row, a_loop_exp); % Concatenate the two arrays along the first dimension
+
+    %%%%% for Transient behaviour test
+
+    a_wen = zeros(p,num_segment);
+    R_inverse = zeros(p,p,num_segment);
+    %%%%%%%%%%% VERY SLOW
+    for ss= 1:num_segment
+        R_inverse(:,:,ss) = inv(R(:,:,ss));
+        a_wen(:,ss) = R_inverse(:,:,ss) * r(:,ss);
+    end 
+
+%     a_lpc = zeros(p+1,num_segment);
+%     for ss =1:num_segment
+%     [acurrent,~] = lpc(s(:,ss),p);   
+%      a_lpc(:,ss) = acurrent';
+%     end
+    % weight-error vector
+    c = a_loop - repmat(a_wen, [1, 1, size(a_loop, 3)]);
+    Q = zeros(p,p,num_segment);
+    QH = zeros(p,p,num_segment);
+    for ss= 1:num_segment
+        [Q(:,:,ss), ~] = eig(R(:,:,ss));
+        QH(:,:,ss) =conj(Q(:,:,ss)');
+    end
+    v =zeros(size(c));
+    for ss= 1:num_segment
+        v(:,:,ss) = QH(:,:,ss) * c(:,:,ss);
+    end
+
+    %%v: 10(eigenvalue)*1656(seg)*2001(stepinerate)
+    figure()
+    vcur = reshape(v(1,1,:), [1, 2001]);
+    plot(1:2001, vcur)
     end
     
 else 
@@ -142,17 +192,4 @@ end
 a = a';
 a_exp1 = ones(size(a,1),1);
 a_exp =[a_exp1 -1.*a];   
-
-%% time domain filter method
-
-s =s';
-error_time_direct = zeros(size(s));
-error_freq = zeros(size(s));
-error_time_test = zeros(size(s));
-% synth_time_direct = zeros(size(s));
-for ss =1:num_segment
-   error_time_direct(ss,:) = filter(a_exp(ss,:),1,s(ss,:));
-   error_freq(ss,:) =fft(error_time_direct(ss,:)')';
-   error_time_test(ss,:) =ifft(error_freq(ss,:)')';
-end
 
