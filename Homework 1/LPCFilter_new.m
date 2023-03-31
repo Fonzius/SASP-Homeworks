@@ -1,4 +1,4 @@
-function[a_exp, error_time_direct, M, num_segment, output_signal_time_direct, start_index, end_index ] = LPCFilter_new (audioFile, windowlength, windowtype, p )
+function[a_exp, error_time_direct,error_freq,  M, num_segment,s_fft, output_signal_time_direct, start_index, end_index ] = LPCFilter_new (audioFile, windowlength, windowtype, p )
 
 % Import the files
 [signal, fs] = audioread(audioFile);
@@ -65,7 +65,7 @@ end
 
 
 %   [s1,num_segment1] = windowing(signal,windowtype,windowlength);
-s_fft = fft(s);
+s_fft = fft(s)';
 
 %% auto-correlation matrix 
 %%%% find a to minimize the short-time mean-squared error
@@ -137,11 +137,15 @@ aaaa =aaaa';
 
 s =s';
 error_time_direct = zeros(size(s));
+error_freq = zeros(size(s));
+error_time_test = zeros(size(s));
 % synth_time_direct = zeros(size(s));
 for ss =1:num_segment
    error_time_direct(ss,:) = filter(a_exp(ss,:),1,s(ss,:));
-%    synth_time_direct(ss,:) = filter(1,a_exp(ss,:),s(ss,:));
+   error_freq(ss,:) =fft(error_time_direct(ss,:)')';
+   error_time_test(ss,:) =ifft(error_freq(ss,:)')';
 end
+
 
 
 

@@ -81,10 +81,10 @@ else
         a_1(:,nn) = vertcat(1, -a(:,nn));
         
     [A(:,nn),~] = freqz(a_1(:,nn),1,"whole",M);
-        %A(:,nn) = A(:,nn)/(mean(A(:,nn)/mean(st_signal(:,nn))));
-        [H(:,nn),w] = freqz(1,a_1(:,nn),"whole",M);
-        %H(:,nn) = H(:,nn)/(mean(H(:,nn))/mean(st_signal(:,nn)));
-        %A(:,nn) = 1/(H(:,nn));
+    %A(:,nn) = A(:,nn)/(mean(A(:,nn)/mean(st_signal(:,nn))));
+    [H(:,nn),w] = freqz(1,a_1(:,nn),"whole",M);
+    %H(:,nn) = H(:,nn)/(mean(H(:,nn))/mean(st_signal(:,nn)));
+    %A(:,nn) = 1/(H(:,nn));
         
     end 
     shapingFilters = H;
