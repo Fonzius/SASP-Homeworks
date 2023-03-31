@@ -1,3 +1,6 @@
+% HW1 - DAAP
+% by Xinmeng Luan, Marco Bernasconi
+% 31 Mar,2023
 
 clc;
 clear;
@@ -6,13 +9,18 @@ close all;
 %% 
 windowLength_piano = 2048; 
 windowLength_speech = 2048; 
-p_piano = 10; % 10    %  get 5 peaks, so p = 10
-p_speech = 46; % 46    %  44100/1000 = 44.1
+p_piano = 10;  %  get 5 peaks, p = 10
+p_speech = 46;  %  44100/1000 = 44.1
 
-method = 2; % 1 for close form, 2 for steepest descent
+% 1 for solving Wiener-Hopf equations, 2 for steepest descent method
+method = 2; 
+% for Transient behaviour test of steepest descent method, 1 is doing test 
+test_tran = 0;
 
-[aPiano, fs, M, num_segment,piano_fft, tot_length, start_index, end_index ] = LPCFilter_new("piano.wav",windowLength_piano,p_piano,method);
-[aSpeech, ~, ~, ~,speech_fft, ~, ~, ~] = LPCFilter_new("speech.wav",windowLength_speech,p_speech,method);
+[aPiano, fs, M, num_segment,piano_fft, tot_length, start_index, end_index ] ...
+    = LPCFilter("piano.wav", windowLength_piano, p_piano, method, test_tran);
+[aSpeech, ~, ~, ~,speech_fft, ~, ~, ~] ...
+    = LPCFilter("speech.wav", windowLength_speech, p_speech, method, test_tran);
 
 
 %% Frequency domain filter
@@ -80,7 +88,7 @@ audiowrite(filename,output,fs);
 %     plot(f,Y1,f,Y2,f,Y3);
 %     xlabel('Hz');
 %     ylabel('dB');
-%     title('Spectrogram-Piano');
+%     title(['Spectrogram-Piano  segment:' num2str(i)]);
 %     legend('Origin Signal','Shaping Filter','Error Signal');
 %     pause(0.01);
 %     drawnow; 
@@ -94,7 +102,7 @@ audiowrite(filename,output,fs);
 %     plot(f,Z1,f,Z2,f,Z3);
 %     xlabel('Hz');
 %     ylabel('dB');
-%     title('Spectrogram-Speech');
+%      title(['Spectrogram-Speech  segment:' num2str(i)]);
 %     legend('Origin Signal','Shaping Filter','Error Signal');
 %     pause(0.01);     
 % end
