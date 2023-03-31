@@ -53,6 +53,8 @@ method = 1; % 1 for close form, 2 for steepest descent
 
 
 %% Frequency domain filter
+
+% Right!
 filterApiano_freq = zeros(M,num_segment);
 filterHpiano_freq = zeros(M,num_segment);
 filterAspeech_freq = zeros(M,num_segment);
@@ -101,57 +103,6 @@ end
 output_time = sum(matrix_synth,1);
 output = output_time / max(abs(output_time));
 sound(real(output),44100)
-
-
-% Right!
-% filterApiano_freq = zeros(M,num_segment);
-% filterHpiano_freq = zeros(M,num_segment);
-% filterAspeech_freq = zeros(M,num_segment);
-% filterHspeech_freq = zeros(M,num_segment);
-% piano_H_norm = zeros(M,num_segment);
-% speech_H_norm = zeros(M,num_segment);
-% error_piano =  zeros(M,num_segment);
-% talking_freq = zeros(M,num_segment);
-% error_piano_time = zeros(M,num_segment);
-% talking_time = zeros(M,num_segment);
-% 
-% aPiano =aPiano';
-% aSpeech =aSpeech';
-% piano_fft = piano_fft';
-% speech_fft = speech_fft';
-% 
-% % A,H filter in freq. domain
-% for ss = 1:num_segment
-%     [filterApiano_freq(:,ss),~] = freqz(aPiano(:,ss),1,"whole",M);
-%     [filterHpiano_freq(:,ss),~] = freqz(1,aPiano(:,ss),"whole",M);
-%     [filterAspeech_freq(:,ss),~] = freqz(aSpeech(:,ss),1,"whole",M);
-%     [filterHspeech_freq(:,ss),~] = freqz(1,aSpeech(:,ss),"whole",M);
-% end
-% 
-% for nn = 1:num_segment
-%    piano_H_norm(:,nn) = (filterHpiano_freq(:,nn)/max(abs(filterHpiano_freq(:,nn))))*max(abs(piano_fft(:,nn)));
-%    speech_H_norm(:,nn) = (filterHspeech_freq(:,nn)/max(abs(filterHspeech_freq(:,nn))))*max(abs(speech_fft(:,nn)));    
-% end
-% 
-% 
-% 
-% for nn = 1:num_segment
-%     error_piano(:,nn) =  piano_fft(:,nn)./ piano_H_norm(:,nn);   
-%     talking_freq(:,nn) = error_piano(:,nn) .* speech_H_norm(:,nn);
-%     error_piano_time(:,nn) = ifft(error_piano(:,nn));
-%     talking_time(:,nn) = ifft(talking_freq(:,nn));
-% end
-% 
-% talking_time = talking_time';
-% 
-% 
-% matrix_synth = zeros(size(ePianotime,1),length(outputZeros));
-% for i = 1:length(start_index)
-%     matrix_synth(i,start_index(i):end_index(i)) = talking_time(i,:);
-% end
-% output_time = sum(matrix_synth,1);
-% output = output_time / max(abs(output_time));
-% sound(real(output),44100)
 
 
 %% Audiowrite
