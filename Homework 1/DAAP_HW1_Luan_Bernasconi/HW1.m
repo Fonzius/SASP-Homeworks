@@ -13,7 +13,7 @@ p_piano = 10;  %  get 5 peaks, p = 10
 p_speech = 46;  %  44100/1000 = 44.1
 
 % 1 for solving Wiener-Hopf equations, 2 for steepest descent method
-method = 2; 
+method = 1; 
 % for Transient behaviour test of steepest descent method, 1 is doing test 
 test_tran = 0;
 
@@ -66,7 +66,7 @@ for i = 1:length(start_index)
 end
 output_time = sum(matrix_synth,1);
 output = output_time / max(abs(output_time));
-sound(real(output),fs)
+ sound(real(output),fs)
 
 %% Audiowrite
 

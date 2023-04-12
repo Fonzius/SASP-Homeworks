@@ -127,14 +127,14 @@ elseif method == 2
 
         % weight-error vector
         c = a_loop - repmat(a_wen, [1, 1, size(a_loop, 3)]);
-        figure()
-         for ii = 1:size(c,1)
-            for jj =1:size(c,2)
-                plot(1:size(c,3),reshape(c(ii,jj,:), [1, size(c,3)]));
-                title(['Weight-error vector    k=' num2str(ii) ',segment=' num2str(jj)])
-                pause(0.0000001);
-            end
-         end
+%         figure()
+%          for ii = 1:size(c,1)
+%             for jj =1:size(c,2)
+%                 plot(1:size(c,3),reshape(c(ii,jj,:), [1, size(c,3)]));
+%                 title(['Weight-error vector    k=' num2str(ii) ',segment=' num2str(jj)])
+%                 pause(0.0000001);
+%             end
+%          end
          Q = zeros(p,p,num_segment);
 
         for ss = 1:num_segment
@@ -156,7 +156,7 @@ elseif method == 2
             for jj =1:size(v,2)
                 vcur = reshape(v(ii,jj,:), [1, size(v,3)]);
                 plot(1:size(v,3), abs(vcur))
-                xlim([0 20])
+%                 xlim([0 20])
                 title(['Transient behaviour    k=' num2str(ii) ',segment=' num2str(jj)])
                 pause(0.0000001); 
             end
