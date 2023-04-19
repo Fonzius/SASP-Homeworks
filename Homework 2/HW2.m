@@ -18,23 +18,58 @@ c = 340; %Speed of sound
 
 %% Apply STFT to both signals
 
-window_length = 1024; % Final padded segment length
-hop_size = 512; % Size of the segments of the signal
+% window_length = 1024; % Final padded segment length
+% hop_size = 512; % Size of the segments of the signal
+% 
+% reshape_h = ceil(length(y1)/hop_size);
+% reshape_size = prod([hop_size,reshape_h]);
+% 
+% y1_zeros = [y1' zeros(1, abs(size(y1,1)-reshape_size))]';
+% y2_zeros = [y2' zeros(1, abs(size(y2,1)-reshape_size))]';
+% 
+% y1_reshape = reshape(y1_zeros,hop_size, reshape_h)';
+% y2_reshape = reshape(y2_zeros,hop_size, reshape_h)';
+% 
+% y1_padded = [y1_reshape  zeros(size(y1_reshape,1), window_length-size(y1_reshape,2))];
+% y2_padded = [y2_reshape  zeros(size(y2_reshape,1), window_length-size(y2_reshape,2))];
+% 
+% y1_stft = fft(y1_padded, window_length, 2);
+% y2_stft = fft(y2_padded, window_length, 2);
 
-reshape_h = ceil(length(y1)/hop_size);
-reshape_size = prod([hop_size,reshape_h]);
+%% COLA STFT of the signals 
+% (CHECK BECAUSE WINDOW LENGTH IS WRONGLY USED AFTER)
+window_length = 512; 
+hop_size = 256;
+%Filter is same size as signal. Final length should be 2*window_length-1 but then add 1 to get a power of 2
+padded_length = 1024; 
 
+window = hann(window_length)';
+reshape_h = ceil(length(y1)/window_length);
+reshape_size = prod([window_length,reshape_h]);
+
+%pad with zeros to do the reshape
 y1_zeros = [y1' zeros(1, abs(size(y1,1)-reshape_size))]';
 y2_zeros = [y2' zeros(1, abs(size(y2,1)-reshape_size))]';
 
-y1_reshape = reshape(y1_zeros,hop_size, reshape_h)';
-y2_reshape = reshape(y2_zeros,hop_size, reshape_h)';
+y1_reshape = zeros(reshape_h, window_length);
+y2_reshape = zeros(reshape_h, window_length);
 
-y1_padded = [y1_reshape  zeros(size(y1_reshape,1), window_length-size(y1_reshape,2))];
-y2_padded = [y2_reshape  zeros(size(y2_reshape,1), window_length-size(y2_reshape,2))];
+for ii = 1:reshape_h
+    index = (ii-1)*hop_size+1;
+    y1_reshape(ii,:) = y1_zeros(index:index+window_length-1);
+    y2_reshape(ii,:) = y2_zeros(index:index+window_length-1);
+end
 
-y1_stft = fft(y1_padded, window_length, 2);
-y2_stft = fft(y2_padded, window_length, 2);
+y1_window = y1_reshape.*window;
+y2_window = y2_reshape.*window;
+
+
+y1_padded = [y1_window  zeros(size(y1_window,1), padded_length-size(y1_window,2))];
+y2_padded = [y2_window  zeros(size(y2_window,1), padded_length-size(y2_window,2))];
+
+y1_stft = fft(y1_padded, padded_length, 2);
+y2_stft = fft(y2_padded, padded_length, 2);
+
 
 %% Compute feature matrix
 
@@ -104,35 +139,36 @@ f1_stft = y1_stft.*mask1;
 f2_stft = y1_stft.*mask2;
 f3_stft = y1_stft.*mask3;
 
-f1_reshape = ifft(f1_stft, window_length, 2);
-f2_reshape = ifft(f2_stft, window_length, 2);
-f3_reshape = ifft(f3_stft, window_length, 2);
+f1_reshape = ifft(f1_stft, padded_length, 2);
+f2_reshape = ifft(f2_stft, padded_length, 2);
+f3_reshape = ifft(f3_stft, padded_length, 2);
 
-f1_reshape(:, hop_size+1:end) = [];
-f2_reshape(:, hop_size+1:end) = [];
-f3_reshape(:, hop_size+1:end) = [];
 
-f1 = reshape(f1_reshape', numel(f1_reshape),1);
-f2 = reshape(f2_reshape', numel(f2_reshape),1);
-f3 = reshape(f3_reshape', numel(f3_reshape),1);
+f1 = zeros(length(y1)+window_length, 1);
+f2 = zeros(length(y1)+window_length, 1);
+f3 = zeros(length(y1)+window_length, 1);
+
+
+for ii = 1:reshape_h
+    index = ii*hop_size;
+    f1(index:index+padded_length-1) = f1(index:index+padded_length-1) + f1_reshape(ii,:)';
+    f2(index:index+padded_length-1) = f2(index:index+padded_length-1) + f2_reshape(ii,:)';
+    f3(index:index+padded_length-1) = f3(index:index+padded_length-1) + f3_reshape(ii,:)';
+end
+
+% f1_reshape(:, hop_size+1:end) = [];
+% f2_reshape(:, hop_size+1:end) = [];
+% f3_reshape(:, hop_size+1:end) = [];
+% 
+% f1 = reshape(f1_reshape', numel(f1_reshape),1);
+% f2 = reshape(f2_reshape', numel(f2_reshape),1);
+% f3 = reshape(f3_reshape', numel(f3_reshape),1);
 
 %% Output
-%sound(real(f1), fs);
-audiowrite("tryyy.wav",real(f3), fs);
+sound(real(f3), fs);
+%audiowrite("tryyy.wav",real(f3), fs);
 
 
-%% Try to istft
-
-y1istft = ifft(y1_stft, window_length, 2);
-y1dezero = y1istft;
-y1dezero(:, hop_size+1:end) = [];
-
-y1output = reshape(y1dezero',numel(y1dezero),1);
-
-sound(y1output, fs);
-
-
-%audiowrite("tryyy.wav",f1, fs);
 
 
 
