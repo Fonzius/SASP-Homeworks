@@ -2,7 +2,7 @@ clc
 clear all
 close all
 
-%% Data
+% Data
 M = 2; % Number of Microphones
 N = 3; % Number of Speech Signals
 d = 9e-2; %Distance between microphones
@@ -76,6 +76,7 @@ P_unwrap = reshape(P, numel(P), 1);
 phi_unwrap = cat(2, A1_unwrap, A2_unwrap, P_unwrap);
 
 [labels_unwrap, centroids] = kmeans(phi_unwrap, 3);
+
 labels = reshape(labels_unwrap, size(A1));
 
 %% 3D-Plot of features
