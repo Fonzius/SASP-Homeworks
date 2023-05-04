@@ -22,12 +22,11 @@ c = 340; %Speed of sound
 
 window_length = 512;
 hop_size = 256;
-% Filter is same size as signal. Final length should be 2*window_length-1 but then add 1 to get a power of 2
 padded_length = 1024;
 
 % Setup for ola
 window = hann(window_length)';
-reshape_h = ceil(length(y1)/window_length);
+reshape_h = ceil(length(y1)/hop_size);
 reshape_size = prod([window_length,reshape_h]);
 
 
@@ -57,7 +56,7 @@ y2_padded = [y2_window  zeros(size(y2_window,1), padded_length-size(y2_window,2)
 y1_stft = fft(y1_padded, padded_length, 2);
 y2_stft = fft(y2_padded, padded_length, 2);
 
-
+% Take half of the frequencies to avoid problems with k-means
 y1_stft_half = y1_stft(:, 1:padded_length/2);
 y2_stft_half = y2_stft(:, 1:padded_length/2);
 
@@ -138,10 +137,6 @@ f1_stft = y1_stft.*mask1_mirrored;
 f2_stft = y1_stft.*mask2_mirrored;
 f3_stft = y1_stft.*mask3_mirrored;
 
-% f1_stft_flip = [f1_stft, flip(f1_stft,2)];
-% f2_stft_flip = [f2_stft, flip(f2_stft,2)];
-% f3_stft_flip = [f3_stft, flip(f3_stft,2)];
-
 % Take the inverse fft to obtain the segments
 f1_reshape = ifft(f1_stft, padded_length, 2);
 f2_reshape = ifft(f2_stft, padded_length, 2);
@@ -149,9 +144,9 @@ f3_reshape = ifft(f3_stft, padded_length, 2);
 
 % Sum all the segments back together with overlap to obtain 
 % the resulting signal
-f1 = zeros(length(y1)+window_length, 1);
-f2 = zeros(length(y1)+window_length, 1);
-f3 = zeros(length(y1)+window_length, 1);
+f1 = zeros(length(y1)+2*padded_length, 1);
+f2 = zeros(length(y1)+2*padded_length, 1);
+f3 = zeros(length(y1)+2*padded_length, 1);
 
 
 for ii = 1:reshape_h
@@ -178,9 +173,9 @@ for ii = 1:3
 end
 [M,MaxIndexes] = max(maxCorr,[],2);
 
-f1_reconstructed = f(:,MaxIndexes(1));
-f2_reconstructed = f(:,MaxIndexes(2));
-f3_reconstructed = f(:,MaxIndexes(3));
+f1_reconstructed = removeZeros(f(:,MaxIndexes(1)));
+f2_reconstructed = removeZeros(f(:,MaxIndexes(2)));
+f3_reconstructed = removeZeros(f(:,MaxIndexes(3)));
 
 
 audiowrite("f1.wav",real(f1_reconstructed), fs);
@@ -197,14 +192,14 @@ t = linspace(0,length(y1)/fs, reshape_h)';
 figure()
 sgtitle("Log-log-amplitude spectrograms for the mixture signals");
 subplot(1,2,1);
-surf(t,f,20*log10(abs(y1_stft')), EdgeColor="none");
+surf(t,f,20*log10(abs(y1_stft_half')), EdgeColor="none");
 title("y1.wav");
 xlabel("Time [s]");
 ylabel("Frequency [Hz]");
 view([0,90]);
 
 subplot(1,2,2);
-surf(t,f,20*log10(abs(y2_stft')), EdgeColor="none");
+surf(t,f,20*log10(abs(y2_stft_half')), EdgeColor="none");
 title("y2.wav");
 xlabel("Time [s]");
 ylabel("Frequency [Hz]");
@@ -221,9 +216,15 @@ f1_true_stft = mystft(f1_true, hop_size, window_length, padded_length);
 f2_true_stft = mystft(f2_true, hop_size, window_length, padded_length);
 f3_true_stft = mystft(f3_true, hop_size, window_length, padded_length);
 
-f1_reconstructed_stft = mystft(f1_reconstructed, hop_size, window_length, padded_length);
-f2_reconstructed_stft = mystft(f2_reconstructed, hop_size, window_length, padded_length);
-f3_reconstructed_stft = mystft(f3_reconstructed, hop_size, window_length, padded_length);
+f1_true_stft = f1_true_stft(:, 1:padded_length/2);
+f2_true_stft = f2_true_stft(:, 1:padded_length/2);
+f3_true_stft = f3_true_stft(:, 1:padded_length/2);
+
+f_stft = cat(3,f1_stft,f2_stft,f3_stft);
+
+f1_reconstructed_stft = f_stft(:,1:end/2,MaxIndexes(1));
+f2_reconstructed_stft = f_stft(:,1:end/2,MaxIndexes(2));
+f3_reconstructed_stft = f_stft(:,1:end/2,MaxIndexes(3));
 
 figure()
 sgtitle("Log-log-amplitude spectrograms for the true and estimated signals");
@@ -250,21 +251,21 @@ ylabel("Frequency [Hz]");
 view([0,90]);
 
 subplot(2,3,4);
-surf(t,f,20*log10(abs(f1_reconstructed')), EdgeColor="none");
+surf(t,f,20*log10(abs(f1_reconstructed_stft')), EdgeColor="none");
 title("Estimated signal 1");
 xlabel("Time [s]");
 ylabel("Frequency [Hz]");
 view([0,90]);
 
 subplot(2,3,5);
-surf(t,f,20*log10(abs(f2_reconstructed')), EdgeColor="none");
+surf(t,f,20*log10(abs(f2_reconstructed_stft')), EdgeColor="none");
 title("Estimated signal 2");
 xlabel("Time [s]");
 ylabel("Frequency [Hz]");
 view([0,90]);
 
 subplot(2,3,6);
-surf(t,f,20*log10(abs(f3_reconstructed')), EdgeColor="none");
+surf(t,f,20*log10(abs(f3_reconstructed_stft')), EdgeColor="none");
 title("Estimated signal 3");
 xlabel("Time [s]");
 ylabel("Frequency [Hz]");
@@ -363,3 +364,16 @@ title("A2/AP");
 view(2);
 xlabel("A2");
 ylabel("P");
+
+%% TEST FEATURES
+
+B = normalize(log10((abs(y1_stft_half)./abs(y2_stft_half))));
+B = B./max(abs(B),[],"all");
+
+%histogram(B, 5000);
+
+R = zeros(size(y1_stft_half));
+for ii = 1:size(y1_stft_half,2)
+    r = xcorr(y1_stft_half(:,ii),y2_stft_half(:,ii), 'normalized');
+    R(:,ii) = abs(r(ceil(end/2):end)./max(r));
+end

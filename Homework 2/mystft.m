@@ -1,7 +1,7 @@
 function stft = mystft(signal,hop_size,window_length,padded_length)
 
 window = hann(window_length)';
-reshape_h = ceil(length(signal)/window_length);
+reshape_h = ceil(length(signal)/hop_size);
 reshape_size = prod([window_length,reshape_h]);
 
 
