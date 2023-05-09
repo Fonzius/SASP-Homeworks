@@ -165,6 +165,7 @@ f3_true = audioread("DAAP_HW2_reference_files/s3.wav");
 f = [f1,f2,f3];
 f_true = [f1_true, f2_true, f3_true];
 
+% Use CrossCorrelation in order to sort the signals in a correct way
 maxCorr = zeros(3,3);
 for ii = 1:3
     for jj = 1:3
@@ -178,9 +179,9 @@ f2_reconstructed = removeZeros(f(:,MaxIndexes(2)));
 f3_reconstructed = removeZeros(f(:,MaxIndexes(3)));
 
 
-audiowrite("f1.wav",real(f1_reconstructed), fs);
-audiowrite("f2.wav",real(f2_reconstructed), fs);
-audiowrite("f3.wav",real(f3_reconstructed), fs);
+audiowrite("Luan_Bernasconi_f1.wav",real(f1_reconstructed), fs);
+audiowrite("Luan_Bernasconi_f2.wav",real(f2_reconstructed), fs);
+audiowrite("Luan_Bernasconi_f3.wav",real(f3_reconstructed), fs);
 
 %% Plots
 
@@ -276,13 +277,16 @@ view([0,90]);
 figure()
 sgtitle("Binary Masks in black and white");
 
+cmap = gray;
+cmap = flipud(cmap);
+
 subplot(1,3,1);
 surf(t,f,mask1', EdgeColor="none");
 title("Mask 1");
 xlabel("Time [s]");
 ylabel("Frequency [Hz]");
 view([0,90]);
-colormap('gray');
+colormap(cmap);
 
 subplot(1,3,2);
 surf(t,f,mask2', EdgeColor="none");
@@ -290,7 +294,7 @@ title("Mask 2");
 xlabel("Time [s]");
 ylabel("Frequency [Hz]");
 view([0,90]);
-colormap('gray');
+colormap(cmap);
 
 subplot(1,3,3);
 surf(t,f,mask3', EdgeColor="none");
@@ -298,7 +302,7 @@ title("Mask 3");
 xlabel("Time [s]");
 ylabel("Frequency [Hz]");
 view([0,90]);
-colormap('gray');
+colormap(cmap);
 
 %% Density Plot of each feature
 
@@ -350,6 +354,8 @@ title("A1/A2");
 view(2);
 xlabel("A1");
 ylabel("A2");
+xlim([0 1]);
+ylim([0 1]);
 
 subplot(1,3,2);
 hist3([A1_unwrap P_unwrap], 'CdataMode', 'auto', 'Nbins', [nfaces,nfaces]);
@@ -357,6 +363,8 @@ title("A1/P");
 view(2);
 xlabel("A1");
 ylabel("P");
+xlim([0 1]);
+ylim([-0.5 0.5]);
 
 subplot(1,3,3);
 hist3([A2_unwrap P_unwrap], 'CdataMode', 'auto', 'Nbins', [nfaces,nfaces]);
@@ -364,16 +372,25 @@ title("A2/AP");
 view(2);
 xlabel("A2");
 ylabel("P");
+xlim([0 1]);
+ylim([-0.5 0.5]);
 
 %% TEST FEATURES
 
-B = normalize(log10((abs(y1_stft_half)./abs(y2_stft_half))));
-B = B./max(abs(B),[],"all");
+B = db(abs((y2_stft_half)./(y1_stft_half)));
+B = B./(2*max(abs(B),[],"all"));
 
-%histogram(B, 5000);
+B_unwrap = reshape(B, numel(B), 1);
 
-R = zeros(size(y1_stft_half));
-for ii = 1:size(y1_stft_half,2)
-    r = xcorr(y1_stft_half(:,ii),y2_stft_half(:,ii), 'normalized');
-    R(:,ii) = abs(r(ceil(end/2):end)./max(r));
-end
+phi_unwrap_test = cat(2, A1_unwrap, A2_unwrap, P_unwrap, B_unwrap);
+
+[labels_unwrap_test, centroids_test] = kmeans(phi_unwrap_test, 3);
+labels_test = reshape(labels_unwrap_test, size(A1));
+
+plotFeatures3d(labels_unwrap_test, cat(2, A1_unwrap, P_unwrap, B_unwrap));
+title("A2, P, L");
+computeOutput(labels_test, y1_stft,padded_length, y1,reshape_h,hop_size,fs);
+
+figure()
+histogram(B, 5000);
+title("Density plot of feature L");
